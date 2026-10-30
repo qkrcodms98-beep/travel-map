@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { DeleteTripButton } from "@/components/DeleteTripButton";
@@ -8,10 +7,9 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusMessage } from "@/components/StatusMessage";
 import { TripDetail } from "@/components/TripDetail";
 import { useTripStore } from "@/components/TripStoreProvider";
-import { assignTripNumbers } from "@/lib/assignTripNumbers";
+import { useRegionTrip } from "@/components/useRegionTrip";
 import { formatTripNumber } from "@/lib/formatTripNumber";
 import { getErrorMessage } from "@/lib/getErrorMessage";
-import type { TripWithNumber } from "@/types/trip";
 
 // 여행 상세 화면 (COMPONENT_SPEC 3-11-1)
 export default function TripDetailPage() {
@@ -20,14 +18,7 @@ export default function TripDetailPage() {
   const store = useTripStore();
   const regionHref = `/regions/${regionCode}`;
   // 불러오는 중이면 undefined, 찾지 못하면 null
-  const [trip, setTrip] = useState<TripWithNumber | null | undefined>(undefined);
-
-  useEffect(() => {
-    store.listTrips(regionCode).then((saved) => {
-      // 번호는 그 지역의 목록 전체로 매긴다
-      setTrip(assignTripNumbers(saved).find((found) => found.id === tripId) ?? null);
-    });
-  }, [store, regionCode, tripId]);
+  const trip = useRegionTrip(regionCode, tripId);
 
   async function handleDelete() {
     await store.deleteTrip(tripId);

@@ -309,6 +309,13 @@ type TripInput = Omit<NewTrip, "regionCode">;
 - 저장: `useTripStore().createTrip({ regionCode, ...input })`가 끝나면 지역 화면(`/regions/[지역 코드]`)으로 이동한다
 - 취소: 지역 화면으로 이동한다 (뒤로 가기 버튼과 같은 곳. 주소로 바로 들어온 경우에도 앱 밖으로 나가지 않게 `router.back()` 대신 주소로 간다)
 
+### 3-6-2. 여행 수정 화면 (EditTripPage, `app/regions/[regionCode]/trips/[tripId]/edit/page.tsx`) — F-05
+
+- 여행은 여행 상세 화면(3-11-1)과 같은 방법으로 찾는다. 찾지 못하면 같은 문구와 "지역 화면으로" 버튼을 보여 준다
+- 찾으면 `toFormValue(여행)`을 `TripForm`(`mode="edit"`)의 `initialValue`로 넣는다
+- 저장: `useTripStore().updateTrip(여행 id, input)`이 끝나면 여행 상세로 이동한다
+- 취소: 여행 상세로 이동한다 (뒤로 가기 버튼과 같은 곳)
+
 ### 3-7. DateFields — F-03, F-05
 
 ```ts

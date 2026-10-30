@@ -8,7 +8,7 @@ import { getErrorMessage } from "@/lib/getErrorMessage";
 import { getTodayInSeoul } from "@/lib/getTodayInSeoul";
 import { REGION_CODES } from "@/lib/regionCodes";
 import { toTripInput } from "@/lib/toTripInput";
-import { DIARY_MAX_CHARS, isRealDate, validateNewTrip } from "@/lib/tripRules";
+import { DIARY_MAX_CHARS, isRealDate, validateNewTrip, validateTripUpdate } from "@/lib/tripRules";
 import type { RegionCode } from "@/types/region";
 import type { TripFormValue, TripInput } from "@/types/trip";
 
@@ -50,7 +50,7 @@ interface TripFormProps {
   onCancel: () => void;
 }
 
-export function TripForm({ regionCode, initialValue, onSubmit, onCancel }: TripFormProps) {
+export function TripForm({ mode, regionCode, initialValue, onSubmit, onCancel }: TripFormProps) {
   const [value, setValue] = useState<TripFormValue>(initialValue ?? EMPTY_VALUE);
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
@@ -62,7 +62,12 @@ export function TripForm({ regionCode, initialValue, onSubmit, onCancel }: TripF
 
     // 종료일 "" → null로 바꾼 뒤 검사한다
     const input = toTripInput(value);
-    const result = validateNewTrip({ regionCode, ...input }, { now: new Date(), regionCodes: REGION_CODES });
+    // 새 여행은 지역까지, 수정은 지역 없이 검사한다 (수정에서는 지역을 바꿀 수 없다)
+    const now = new Date();
+    const result =
+      mode === "create"
+        ? validateNewTrip({ regionCode, ...input }, { now, regionCodes: REGION_CODES })
+        : validateTripUpdate(input, { now });
     if (!result.success) {
       setErrors(toFormErrors(result.code, input));
       return;
