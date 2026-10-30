@@ -11,28 +11,32 @@ interface DateFieldsProps {
   onChange: (next: { startDate: DateString | ""; endDate: DateString | "" }) => void;
 }
 
-export function DateFields({ startDate, endDate, today, onChange }: DateFieldsProps) {
+export function DateFields({ startDate, endDate, today, startDateError, endDateError, onChange }: DateFieldsProps) {
   const id = useId();
 
   return (
     <div>
       <label htmlFor={`${id}-start`}>시작일 (필수)</label>
-      {/* 달력에서 오늘 뒤의 날짜는 고를 수 없다 */}
+      {/* 달력에서 오늘 뒤의 날짜는 고를 수 없다. 에러 문구를 칸과 함께 읽게 이어 둔다 */}
       <input
         id={`${id}-start`}
         type="date"
         max={today}
         value={startDate}
+        aria-describedby={`${id}-start-error`}
         onChange={(event) => onChange({ startDate: event.target.value, endDate })}
       />
+      <p id={`${id}-start-error`}>{startDateError}</p>
       <label htmlFor={`${id}-end`}>종료일</label>
       {/* 종료일은 미래여도 된다 */}
       <input
         id={`${id}-end`}
         type="date"
         value={endDate}
+        aria-describedby={`${id}-end-error`}
         onChange={(event) => onChange({ startDate, endDate: event.target.value })}
       />
+      <p id={`${id}-end-error`}>{endDateError}</p>
     </div>
   );
 }

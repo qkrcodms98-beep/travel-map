@@ -297,6 +297,9 @@ type TripInput = Omit<NewTrip, "regionCode">;
 | 저장에 성공한다 (수정) | 여행 상세로 이동한다 |
 | "취소" 버튼을 누른다 | `onCancel`을 부른다 → 앞 화면으로 돌아간다 |
 
+- 검사 함수: `mode="create"`는 `validateNewTrip`(지역 코드를 붙이고 `REGION_CODES`로), `mode="edit"`는 `validateTripUpdate`. 지금 시각은 저장을 누른 때의 `new Date()`
+- 에러 자리는 5장 표를 따른다. 검사는 먼저 걸린 코드 하나만 주므로, `INVALID_DATE`일 때는 `isRealDate`(4장)로 두 날짜를 각각 보고 틀린 칸 모두에 문구를 붙인다. 칸에 붙일 수 없는 코드는 폼 위쪽 FormError에 보여 준다
+- 칸 아래 문구는 입력 칸의 `aria-describedby`로 이어서, 화면 읽기 프로그램이 칸과 함께 읽게 한다
 - `mode="edit"`일 때는 지역을 바꾸는 칸이 없다 (API_SPEC 3-3)
 - 버튼 글자는 새 여행 기록과 수정 모두 "저장", "취소"다
 
@@ -551,6 +554,9 @@ function validateNewTrip(
 
 // 수정 규칙. 4개 필드가 모두 있어야 하고, 지역은 받지 않는다 (API_SPEC 3-3)
 function validateTripUpdate(input: unknown, options: { now: Date }): TripRuleResult<TripInput>;
+
+// "YYYY-MM-DD" 모양이고 실제 있는 날짜인지 (규칙 안에서 쓰고, TripForm이 INVALID_DATE를 칸마다 나눌 때도 쓴다)
+function isRealDate(value: string): boolean;
 ```
 
 | 함수 | 쓰는 곳 | 관련 기능 | 버전 |

@@ -4,7 +4,8 @@ import { getTodayInSeoul } from "@/lib/getTodayInSeoul";
 import type { RegionCode } from "@/types/region";
 import type { DateString, NewTrip, TripInput } from "@/types/trip";
 
-const DIARY_MAX_CHARS = 2000;
+// 여행일기 최대 글자 수 (화면의 DiaryField도 같이 쓴다)
+export const DIARY_MAX_CHARS = 2000;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const REGION_CODE_PATTERN = /^\d{5}$/;
 
@@ -49,7 +50,7 @@ const tripUpdateShape = z.strictObject({
 });
 
 // "YYYY-MM-DD" 모양이고 실제 있는 날짜인지. 2026-02-30은 Date가 3월로 넘겨 버려서 되돌린 글자가 달라진다
-function isRealDate(value: string): boolean {
+export function isRealDate(value: string): boolean {
   if (!DATE_PATTERN.test(value)) return false;
   const time = Date.parse(`${value}T00:00:00Z`);
   return !Number.isNaN(time) && new Date(time).toISOString().slice(0, 10) === value;
