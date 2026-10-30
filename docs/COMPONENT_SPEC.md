@@ -303,6 +303,12 @@ type TripInput = Omit<NewTrip, "regionCode">;
 - `mode="edit"`일 때는 지역을 바꾸는 칸이 없다 (API_SPEC 3-3)
 - 버튼 글자는 새 여행 기록과 수정 모두 "저장", "취소"다
 
+### 3-6-1. 새 여행 기록 화면 (NewTripPage, `app/regions/[regionCode]/trips/new/page.tsx`) — F-03
+
+- 브라우저에서 도는 화면이다. 주소의 지역 코드는 `useParams()`로 읽는다
+- 저장: `useTripStore().createTrip({ regionCode, ...input })`가 끝나면 지역 화면(`/regions/[지역 코드]`)으로 이동한다
+- 취소: 지역 화면으로 이동한다 (뒤로 가기 버튼과 같은 곳. 주소로 바로 들어온 경우에도 앱 밖으로 나가지 않게 `router.back()` 대신 주소로 간다)
+
 ### 3-7. DateFields — F-03, F-05
 
 ```ts

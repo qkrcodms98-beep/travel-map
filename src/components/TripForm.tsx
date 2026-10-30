@@ -50,7 +50,7 @@ interface TripFormProps {
   onCancel: () => void;
 }
 
-export function TripForm({ regionCode, initialValue, onSubmit }: TripFormProps) {
+export function TripForm({ regionCode, initialValue, onSubmit, onCancel }: TripFormProps) {
   const [value, setValue] = useState<TripFormValue>(initialValue ?? EMPTY_VALUE);
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
@@ -88,6 +88,9 @@ export function TripForm({ regionCode, initialValue, onSubmit }: TripFormProps) 
       <DiaryField value={value.diary} maxLength={DIARY_MAX_CHARS} onChange={(diary) => setValue({ ...value, diary })} />
       <button type="submit" disabled={saving}>
         {saving ? "저장 중…" : "저장"}
+      </button>
+      <button type="button" onClick={onCancel}>
+        취소
       </button>
     </form>
   );

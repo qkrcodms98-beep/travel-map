@@ -33,9 +33,10 @@ export function DateFields({ startDate, endDate, today, startDateError, endDateE
         id={`${id}-end`}
         type="date"
         value={endDate}
-        aria-describedby={`${id}-end-error`}
+        aria-describedby={`${id}-end-hint ${id}-end-error`}
         onChange={(event) => onChange({ startDate, endDate: event.target.value })}
       />
+      <p id={`${id}-end-hint`}>비워 두면 당일치기로 저장돼요.</p>
       <p id={`${id}-end-error`}>{endDateError}</p>
     </div>
   );
