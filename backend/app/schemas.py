@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -40,3 +41,11 @@ class TripInput:
 @dataclass
 class NewTrip(TripInput):
     region_code: str
+
+
+# 저장된 여행 한 개 (DATA_MODEL 4장)
+@dataclass
+class Trip(NewTrip):
+    id: str
+    created_at: datetime  # 기록한 시각. 수정해도 그대로
+    updated_at: datetime  # 마지막으로 수정한 시각
