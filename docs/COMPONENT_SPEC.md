@@ -102,8 +102,8 @@ class TripStoreError extends Error {
 
 | 버전 | 안에서 하는 일 |
 |---|---|
-| v0.1 | 브라우저 메모리에 저장한다. 입력 검사도 같은 Zod 규칙으로 하고, 실패하면 API_SPEC과 같은 에러 코드를 낸다 |
-| v0.2 ~ | API_SPEC의 4개 주소를 부른다 |
+| v0.1 | 브라우저 메모리에 저장한다. 입력 검사도 화면의 Zod 규칙(`validateNewTrip`, `validateTripUpdate`)으로 하고, 실패하면 API_SPEC과 같은 에러 코드를 낸다 |
+| v0.2 ~ | FastAPI 백엔드의 4개 주소(API_SPEC, `NEXT_PUBLIC_API_URL` 뒤에 붙임)를 부른다. 서버 검사는 백엔드가 한다 |
 
 - 버전이 바뀌어도 `TripStore`의 모양과 에러 코드는 같다. 그래서 v0.2에서 저장 위치를 바꿔도 페이지와 부품은 고치지 않는다 (TRD 3장)
 
@@ -370,7 +370,7 @@ interface DiaryFieldProps {
 - 넣은 글이 잘렸는지로 안내를 정한다. 붙여 넣기든 2,000자에서 한 글자 더 치기든 잘렸으면 "2,000자까지만 쓸 수 있어요."를 보여 주고, 다음 입력이 잘리지 않으면 안내를 지운다
 - 안내 글자는 `maxLength`로 만든다 (2000 → "2,000자까지만 쓸 수 있어요.")
 - **일기 남은 글자 수는 DiaryField가 맡는다**
-- 글자는 `src/lib`의 `countDiaryChars`(4장)로 센다. 서버 검사와 같은 함수라서 화면과 서버의 글자 수가 항상 같다 (API_SPEC 5장)
+- 글자는 `src/lib`의 `countDiaryChars`(4장)로 센다. 화면의 Zod 규칙과 같은 함수다. 백엔드는 파이썬 `count_diary_chars`로 세고, 같은 테스트 값(TEST_CASES BE-01~04)으로 결과를 맞춘다 (API_SPEC 5장)
 - 브라우저 입력 칸의 기본 글자 제한(`maxLength`)은 이모지를 2자로 세므로 쓰지 않는다
 
 ### 3-9. DongPicker — F-11 (v0.4)
@@ -520,7 +520,7 @@ function calcCompletion(
   regionAreas: Record<RegionCode, number>, // 지도 데이터에 미리 넣어 둔 넓이 (TRD 6장)
 ): number;
 
-// 글자 세기: 문자 하나를 1자로 센다 (이모지 😀도 1자). 화면(DiaryField)과 서버(Zod 규칙)가 같이 쓴다
+// 글자 세기: 문자 하나를 1자로 센다 (이모지 😀도 1자). 화면(DiaryField)과 화면의 Zod 규칙이 같이 쓴다. 백엔드는 파이썬 짝 함수를 따로 둔다
 function countDiaryChars(text: string): number;
 
 // 글자 자르기: countDiaryChars 기준으로 max자까지만 남긴다. 이모지를 반으로 쪼개지 않는다
@@ -560,7 +560,7 @@ function getTodayInSeoul(now: Date): DateString;
 function getErrorMessage(code: string): string;
 ```
 
-입력 규칙(Zod)도 같은 곳에 둔다. 화면과 서버(v0.2~)가 같이 쓴다.
+입력 규칙(Zod)도 같은 곳에 둔다. 화면(TripForm, v0.1의 TripStoreProvider)만 쓴다. 백엔드(v0.2~)는 Pydantic과 파이썬 검사 함수로 같은 규칙을 따로 검사하고, TEST_CASES의 VAL 표 하나로 양쪽을 각각 테스트한다.
 
 ```ts
 // 검사 결과. 검사 순서는 API_SPEC 5장을 따르고, 실패하면 먼저 걸린 에러 하나만 돌려준다
@@ -590,7 +590,7 @@ function isRealDate(value: string): boolean;
 | `assignTripNumbers` | RegionPage, TripDetailPage | F-07 | v0.1 |
 | `sortTripsNewestFirst` | RegionPage | F-02 | v0.1 |
 | `calcCompletion` | HomePage | F-13 | v0.4 |
-| `countDiaryChars` | DiaryField, Zod 규칙 (화면·서버) | F-03, F-05 | v0.1 |
+| `countDiaryChars` | DiaryField, Zod 규칙 | F-03, F-05 | v0.1 |
 | `cutToMaxChars` | DiaryField | F-03, F-05 | v0.1 |
 | `toMergedRegionCode` | 지도 파일·코드 목록 파일 만들기 | F-01 | v0.1 |
 | `formatTripNumber` | TripListItem, TripDetail | F-02, F-04 | v0.1 |
@@ -600,8 +600,8 @@ function isRealDate(value: string): boolean;
 | `toFormValue` | EditTripPage | F-05 | v0.1 |
 | `getTodayInSeoul` | DateFields, Zod 규칙 | F-03, F-05 | v0.1 |
 | `getErrorMessage` | TripForm, FormError, 각 페이지 | F-03, F-05, F-06 | v0.1 |
-| `validateNewTrip` | TripForm, TripStoreProvider (v0.1), POST API (v0.2~) | F-03 | v0.1 |
-| `validateTripUpdate` | TripForm, TripStoreProvider (v0.1), PUT API (v0.2~) | F-05 | v0.1 |
+| `validateNewTrip` | TripForm, TripStoreProvider (v0.1) | F-03 | v0.1 |
+| `validateTripUpdate` | TripForm, TripStoreProvider (v0.1) | F-05 | v0.1 |
 
 - 순서 주의: 번호는 **오래된 순**으로 매기고(`assignTripNumbers`), 보여 줄 때는 **최신순**으로 줄 세운다(`sortTripsNewestFirst`). 그래서 목록 맨 위가 가장 큰 번호다
 
@@ -665,7 +665,7 @@ function isRealDate(value: string): boolean;
 | 지도 확대·이동 | MapView (확대 상태 기억은 MapViewportProvider) | F-16 |
 | 삭제 확인 | DeleteTripButton + ConfirmDialog | F-06 |
 | 일기 남은 글자 수, 2,000자에서 입력 막기 | DiaryField | F-03, F-05 |
-| 미래 시작일 막기 | DateFields (달력) + Zod 규칙 | F-03, F-05 |
+| 미래 시작일 막기 | DateFields (달력) + Zod 규칙 (서버에서는 백엔드 검사) | F-03, F-05 |
 | 지도 데이터 출처 표시 | AttributionFooter | (라이선스) |
 
 ## 8. 기능 ID별 부품
