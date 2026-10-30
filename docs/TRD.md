@@ -103,15 +103,16 @@ backend/
 ├─ pyproject.toml   패키지 목록 (uv가 관리)
 ├─ uv.lock          설치한 정확한 버전
 ├─ app/
-│  ├─ main.py       FastAPI 앱 만들기, CORS, 에러 모양 맞추기 (8장)
-│  ├─ routes.py     API 주소 4개 (API_SPEC 3장)
-│  ├─ schemas.py    Pydantic 모델: 요청·응답 모양, camelCase 이름
-│  ├─ rules.py      입력 검사 (API_SPEC 5장 순서), 글자 세기, 한국 날짜
-│  ├─ codes.py      codes.json 읽기
-│  └─ store.py      여행 저장소 (v0.2 메모리, v0.3 DB)
-└─ tests/           pytest 테스트, 가짜 코드 목록
+│  ├─ main.py           FastAPI 앱 만들기, CORS, 에러 모양 맞추기 (8장), GET /health
+│  ├─ routers/
+│  │  └─ trips.py       API 주소 4개 (API_SPEC 3장). 저장소는 Depends(get_repo)로만 받는다
+│  ├─ schemas.py        Pydantic 모델: 요청·응답 모양, camelCase 이름
+│  ├─ repository.py     여행 저장소: 약속(Protocol)과 메모리 저장소 (v0.2), DB 저장소 (v0.3)
+│  └─ deps.py           의존성: 저장소, 지금 시각, 코드 목록 (테스트에서 바꿔 끼운다)
+└─ tests/               pytest 테스트, 가짜 코드 목록
 ```
 
+- 입력 검사(API_SPEC 5장 순서), 글자 세기, 한국 날짜처럼 새로 필요한 함수는 `app/` 안에 역할별 파일로 더한다
 - 파일이 커지면 나눌 수 있지만, 역할(검사·저장소·주소)은 섞지 않는다
 
 ## 4. 지역을 눌러 여행을 저장하기까지의 흐름

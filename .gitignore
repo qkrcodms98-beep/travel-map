@@ -45,3 +45,9 @@ next-env.d.ts
 
 # create-next-app 임시 폴더
 /travel-map-init/
+
+# 파이썬 백엔드
+.venv/
+__pycache__/
+.pytest_cache/
+backend/.env
