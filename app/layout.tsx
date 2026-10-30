@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { AttributionFooter } from "@/components/AttributionFooter";
+import { TripStoreProvider } from "@/components/TripStoreProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,7 +15,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {/* 모든 페이지가 같은 저장소를 쓰게 가장 바깥에 둔다 */}
+        <TripStoreProvider>{children}</TripStoreProvider>
+        <AttributionFooter />
+      </body>
     </html>
   );
 }

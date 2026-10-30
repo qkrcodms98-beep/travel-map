@@ -86,7 +86,19 @@ interface TripStore {
 interface TripStoreProviderProps {
   children: React.ReactNode;
 }
+
+// 부품은 이 함수로 저장소를 꺼낸다. TripStoreProvider 바깥에서 부르면 에러를 던진다
+function useTripStore(): TripStore;
+
+// 저장소 함수가 실패하면 이 에러를 던진다 (Promise가 reject된다)
+// code는 API_SPEC 2장의 에러 코드. 화면은 code만 보고 5장 문구를 고른다 (getErrorMessage)
+class TripStoreError extends Error {
+  code: string; // 예: "START_DATE_IN_FUTURE", "TRIP_NOT_FOUND"
+}
 ```
+
+- `TripStoreProvider`, `useTripStore`, `TripStoreError`는 모두 `src/components/TripStoreProvider.tsx`에서 내보낸다
+- 실패를 받는 쪽은 `catch (error)`에서 `error.code`를 읽는다. v0.2부터는 API 응답의 `error.code`를 그대로 담아 던지므로 받는 쪽은 고치지 않는다
 
 | 버전 | 안에서 하는 일 |
 |---|---|
