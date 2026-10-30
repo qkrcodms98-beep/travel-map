@@ -138,7 +138,20 @@ interface RegionFeature {
 | 한 손가락 끌기, 마우스 끌기 | 지도를 옮긴다 (F-16) |
 | 지역을 짧게 누른다 | `onRegionClick(지역 코드)`를 부른다 → 지역 화면으로 이동 |
 | 끌다가 손을 뗀다 | 지역을 누른 것으로 치지 않는다. 옮기려다 다른 화면으로 넘어가는 실수를 막는다 |
+| 키보드 Tab으로 지역에 간 뒤 Enter 또는 Space | 지역을 누른 것과 같다 (`onRegionClick`) |
 
+- `MapViewProps`, `MapViewport`, `RegionFeature`는 `src/components/MapView.tsx`에서 내보낸다
+- **역할 나누기:** d3는 모양 계산(투영, path 글자, 확대 계산)만 하고, `<path>` 요소는 React(JSX)가 그린다
+  - 휠과 손가락(끌기, 두 손가락 확대)은 d3 확대 기능이 받는다
+  - 마우스 끌기는 React의 pointer 이벤트로 받아 움직인 거리만 재고, 옮긴 결과 계산은 d3(`translateBy`)가 한다. 끌었으면 손을 뗄 때 생기는 클릭은 무시한다 (UI-06)
+  - 끌다가 지도 밖으로 나가도 놓치지 않게 마우스를 `<svg>`에 붙잡는다(`setPointerCapture`). 붙잡으면 브라우저가 클릭을 지역이 아닌 `<svg>`에서 일으키므로, 누를 때 어느 지역인지 기억해 두고 클릭은 `<svg>` 한 곳에서 처리한다 (UI-98)
+- 각 지역 `<path>`에는 아래를 붙인다
+  - `aria-label`: 지역 이름 (화면 읽기용, 테스트도 이 이름으로 찾는다)
+  - `data-color-stage`: `getColorStage()`의 결과 `"none"` / `"once"` / `"many"` (테스트는 색 대신 이 값을 본다)
+  - `role="button"`, `tabIndex={0}`: 키보드로 고를 수 있게
+- 지역들은 하나의 `<g>`로 감싸고, 그 `<g>`의 `transform`에 확대 상태를 d3 글자 모양 그대로 적는다
+  - 예: `viewport = { scale: 2, x: 10, y: 20 }` → `transform="translate(10,20) scale(2)"`
+  - 처음 상태(`viewport = null`)는 `transform="translate(0,0) scale(1)"`
 - **확대·이동(F-16)은 MapView가 맡는다.** d3의 확대 기능을 쓴다
 - 가장 작게는 전국이 한 화면에 보이고, 가장 크게는 서울의 구를 손가락으로 정확히 누를 수 있을 만큼 키운다 (PRD 성공 기준). 정확한 배율은 만들면서 정한다
 - **다른 화면에 갔다가 첫 화면으로 돌아오면 확대 상태와 위치를 그대로 둔다.** MapView는 화면을 옮기면 사라지므로, 확대 상태는 가장 바깥 레이아웃의 `MapViewportProvider`에 기억해 둔다
@@ -150,9 +163,26 @@ interface RegionFeature {
 interface MapViewportProviderProps {
   children: React.ReactNode;
 }
+
+// 첫 화면은 이 함수로 확대 상태를 꺼내 MapView에 넘기고, 바뀌면 setViewport로 기억한다
+// MapViewportProvider 바깥에서 부르면 에러를 던진다
+function useMapViewport(): {
+  viewport: MapViewport | null; // 아직 확대·이동한 적 없으면 null
+  setViewport: (viewport: MapViewport) => void;
+};
 ```
 
+- `MapViewportProvider`, `useMapViewport`는 `src/components/MapViewportProvider.tsx`에서 내보낸다
+- 가장 바깥 레이아웃에서 `TripStoreProvider` 안쪽에 둔다 (2장 트리)
 - 브라우저 메모리에만 기억한다. 새로고침하면 사라진다
+
+### 3-2-2. 첫 화면 (HomePage, `app/page.tsx`) — F-01, F-08, F-16
+
+- 지도 파일은 브라우저에서 `fetch("/data/regions.topo.json")`으로 불러온다 (`public/data/`의 파일은 이 주소로 열린다)
+- 불러온 TopoJSON의 `objects.regions`를 topojson-client로 풀어 `RegionFeature[]`로 바꾼다. 각 지역의 `properties`에는 `code`, `name`이 있다
+- 여행 목록은 `useTripStore().listTrips()`로 읽고, `countVisits()`로 `visitCounts`를 만든다
+- 지역을 누르면 `/regions/[지역 코드]`로 이동한다
+- 불러오는 중·실패·여행 없음 문구는 6장, 모양은 `StatusMessage`를 따른다
 
 ### 3-3. CompletionBadge — F-13 (v0.4)
 

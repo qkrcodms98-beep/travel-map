@@ -257,6 +257,7 @@ DATA_MODEL 3장 규칙이다. 지도 파일과 코드 목록 파일을 만들 �
 | UI-04 | MapView | `visitCounts = { "99010": 2 }` | A가 지형 무늬로 칠해진다 (무늬가 붙었는지만 확인. 생김새는 MANUAL-01) | F-12 | v0.4 |
 | UI-05 | MapView | A를 짧게 누름 | `onRegionClick("99010")`이 한 번 불린다 | F-01, F-02 | v0.1 |
 | UI-06 | MapView | A 위에서 누른 채 끌다가 A 위에서 손을 뗌 | `onRegionClick`이 불리지 않는다 (지역을 누른 것으로 치지 않음) | F-16 | v0.1 |
+| UI-98 | MapView | A를 움직이지 않고 짧게 누르는데, 손을 뗄 때의 대상이 지도 전체(`<svg>`)로 바뀜 (진짜 브라우저에서 마우스를 붙잡으면 이렇게 된다) | `onRegionClick("99010")`이 한 번 불린다 | F-01, F-02 | v0.1 |
 | UI-07 | MapView | 마우스 휠로 확대 | `onViewportChange`가 불리고 `scale`이 1보다 크다 | F-16 | v0.1 |
 | UI-08 | MapView | 끌어서 옮김 | `onViewportChange`가 불리고 `x` 또는 `y`가 바뀐다 | F-16 | v0.1 |
 | UI-09 | MapView | `viewport = { scale: 2, x: 10, y: 20 }`으로 그림 | 그 확대 상태로 그려진다 | F-16 | v0.1 |
