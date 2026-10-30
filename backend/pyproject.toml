@@ -21,3 +21,6 @@ dev = [
 # tests/에서 app 패키지를 불러올 수 있게 backend/를 기준 폴더로 둔다
 pythonpath = ["."]
 testpaths = ["tests"]
+# DB 테스트는 기본으로 빼고, "-m db"를 붙였을 때만 돈다 (뒤에 쓴 -m이 이긴다)
+addopts = "-m 'not db'"
+markers = ["db: 테스트용 DB(DATABASE_URL_TEST)에 연결하는 테스트"]
