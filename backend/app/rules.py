@@ -47,6 +47,12 @@ def check_dates_and_diary(start_date: str, end_date: str | None, diary: str, now
         raise ApiError("DIARY_TOO_LONG")
 
 
+# 지역 코드: 숫자 5자리이고 코드 목록에 있는지 (새 여행 7단계, 목록 주소의 regionCode)
+def check_region_code(region_code: str, region_codes: Set[str]) -> None:
+    if not REGION_CODE_PATTERN.fullmatch(region_code) or region_code not in region_codes:
+        raise ApiError("INVALID_REGION_CODE")
+
+
 # 새 여행 규칙
 def validate_new_trip(data: object, *, now: datetime, region_codes: Set[str]) -> NewTrip:
     body = parse_body(NewTripBody, data)
@@ -56,8 +62,7 @@ def validate_new_trip(data: object, *, now: datetime, region_codes: Set[str]) ->
     # 3~6단계
     check_dates_and_diary(body.start_date, body.end_date, body.diary, now)
     # 7단계: 형식과 코드 목록 둘 다 본다
-    if not REGION_CODE_PATTERN.fullmatch(body.region_code) or body.region_code not in region_codes:
-        raise ApiError("INVALID_REGION_CODE")
+    check_region_code(body.region_code, region_codes)
     # 8단계: v0.3까지는 동네를 받지 않는다
     if body.dong_codes:
         raise ApiError("INVALID_DONG_CODE")

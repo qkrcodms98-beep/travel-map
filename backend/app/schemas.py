@@ -90,3 +90,8 @@ class TripOut(ResponseModel):
 # { "trip": 여행 }
 class TripResponse(ResponseModel):
     trip: TripOut
+
+
+# { "trips": [여행, ...] }
+class TripListResponse(ResponseModel):
+    trips: list[TripOut]
