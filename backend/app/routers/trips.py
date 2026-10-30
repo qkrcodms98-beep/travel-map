@@ -3,7 +3,7 @@ from collections.abc import Set
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, Response
 
 from app.deps import get_now, get_region_codes, get_repo
 from app.errors import ApiError
@@ -58,3 +58,11 @@ async def update_trip(trip_id: str, request: Request, repo: Repo, now: Now) -> T
     if updated is None:
         raise ApiError("TRIP_NOT_FOUND")
     return TripResponse(trip=TripOut.from_trip(updated))
+
+
+# 여행 삭제 (API_SPEC 3-4). 204는 본문 없이 돌려준다
+@router.delete("/{trip_id}", status_code=204)
+def delete_trip(trip_id: str, repo: Repo) -> Response:
+    if not repo.delete(trip_id):
+        raise ApiError("TRIP_NOT_FOUND")
+    return Response(status_code=204)
