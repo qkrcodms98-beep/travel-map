@@ -51,6 +51,13 @@ describe("MapView 그리기와 색칠", () => {
     renderMap({ visitCounts: { "99010": 2 } });
     expect(regionA()).toHaveAttribute("data-color-stage", "many");
   });
+
+  it("UI-04 2번 가 본 A는 지형 무늬로 칠해진다 (무늬가 붙었는지만 본다)", () => {
+    renderMap({ visitCounts: { "99010": 2 } });
+    expect(regionA()).toHaveAttribute("fill", "url(#terrain-pattern)");
+    expect(regionB()).not.toHaveAttribute("fill", "url(#terrain-pattern)");
+    expect(document.querySelector("pattern#terrain-pattern")).toBeInTheDocument();
+  });
 });
 
 describe("MapView 누르기와 확대·이동", () => {

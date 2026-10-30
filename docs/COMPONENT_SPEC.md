@@ -161,6 +161,15 @@ interface RegionFeature {
 - **다른 화면에 갔다가 첫 화면으로 돌아오면 확대 상태와 위치를 그대로 둔다.** MapView는 화면을 옮기면 사라지므로, 확대 상태는 가장 바깥 레이아웃의 `MapViewportProvider`에 기억해 둔다
 - 새로고침하면 기억이 사라지고 전국이 보이는 처음 상태로 돌아간다
 
+**지형 무늬 (F-12, v0.4)**
+- `"many"` 지역은 `fill="url(#terrain-pattern)"`으로 칠한다. 무늬는 `<svg>` 안 `<defs>`의 `<pattern id="terrain-pattern">` 하나다 (UI-04는 이 `fill`을 본다)
+- 무늬는 **전국 지도 크기의 그림 한 장**이다. `patternUnits="userSpaceOnUse"`로 지도 판(600×800)과 같은 자리에 깔아서, 각 지역에는 실제 그 자리의 지형이 보인다 (강원도에는 태백산맥, 제주에는 한라산). 확대하면 `<g>`와 함께 커진다
+- 그림은 브라우저에서 처음 그릴 때 캔버스(`<canvas>`)에 한 번 그리고, 그 결과(PNG 글자)를 무늬 안 `<image>`로 넣는다. 캔버스를 쓸 수 없는 곳(테스트용 가짜 브라우저)에서는 그림 없이 진한 초록 바탕만 보인다
+- 그림 크기는 지도 판의 2배(1200×1600)다. 더 크면 처음 그릴 때 느려진다
+- 지형 계산은 `src/lib/terrain.ts`의 순수 함수로 둔다 (4장). 무작위 값을 쓰지 않으므로 **같은 좌표면 늘 같은 무늬**다
+  - 높이 = 실제 산맥 자리(태백·소백·차령·노령산맥, 광주산맥, 한라산, 울릉도 성인봉 등을 경도·위도 선과 점으로 적음) + 노이즈(울퉁불퉁함)
+  - 색 = 높이별 색(낮은 곳 논밭 연두·갈색, 산 짙은 초록, 높은 능선 갈색) × 북서쪽에서 빛을 비춘 그림자
+
 ### 3-2-1. MapViewportProvider — F-16
 
 ```ts
@@ -530,6 +539,18 @@ function calcCompletion(
   regionAreas: Record<RegionCode, number>, // 지도 데이터에 미리 넣어 둔 넓이 (TRD 6장)
 ): number;
 
+// 지형 (v0.4, src/lib/terrain.ts). 모두 무작위 값 없이 경도·위도만으로 정해진다
+// 높이 0(평지) ~ 1(가장 높은 산)
+function terrainHeight(lon: number, lat: number): number;
+// 그 자리의 위성사진 같은 색 [r, g, b] (0~255). 높이별 색에 그림자를 더한다
+function terrainColor(lon: number, lat: number): [number, number, number];
+// width×height 그림의 RGBA 값. 점마다 toLonLat로 경도·위도를 구해 terrainColor로 칠한다. null이면 투명
+function paintTerrain(
+  width: number,
+  height: number,
+  toLonLat: (x: number, y: number) => [number, number] | null,
+): Uint8ClampedArray;
+
 // 글자 세기: 문자 하나를 1자로 센다 (이모지 😀도 1자). 화면(DiaryField)과 화면의 Zod 규칙이 같이 쓴다. 백엔드는 파이썬 짝 함수를 따로 둔다
 function countDiaryChars(text: string): number;
 
@@ -600,6 +621,7 @@ function isRealDate(value: string): boolean;
 | `assignTripNumbers` | RegionPage, TripDetailPage | F-07 | v0.1 |
 | `sortTripsNewestFirst` | RegionPage | F-02 | v0.1 |
 | `calcCompletion` | HomePage | F-13 | v0.4 |
+| `terrainHeight`, `terrainColor`, `paintTerrain` | MapView (지형 무늬 그림) | F-12 | v0.4 |
 | `countDiaryChars` | DiaryField, Zod 규칙 | F-03, F-05 | v0.1 |
 | `cutToMaxChars` | DiaryField | F-03, F-05 | v0.1 |
 | `toMergedRegionCode` | 지도 파일·코드 목록 파일 만들기 | F-01 | v0.1 |

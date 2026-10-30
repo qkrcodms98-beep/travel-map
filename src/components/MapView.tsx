@@ -13,6 +13,7 @@ import {
 } from "d3";
 import type { Geometry } from "geojson";
 import { getColorStage, type ColorStage } from "@/lib/getColorStage";
+import { useTerrainImage } from "@/components/useTerrainImage";
 import type { RegionCode } from "@/types/region";
 
 // 확대 상태 (COMPONENT_SPEC 3-2)
@@ -44,12 +45,15 @@ const MAX_SCALE = 40;
 // 마우스가 이만큼(px) 넘게 움직이면 누르기가 아니라 끌기로 본다
 const DRAG_THRESHOLD = 3;
 
-// 색칠 단계별 색: 흰색 / 연두색 / 진한 초록
+// 색칠 단계별 색: 흰색 / 연두색 / 진한 초록 (진한 초록은 지형 무늬 그림이 다 그려지기 전의 바탕)
 const FILL: Record<ColorStage, string> = {
   none: "#ffffff",
   once: "#b7e4a0",
   many: "#2d6a4f",
 };
+
+// 지형 무늬 이름 (2번 이상 간 지역의 fill)
+const TERRAIN_PATTERN_ID = "terrain-pattern";
 
 // 우리 모양(MapViewport) ↔ d3 모양(ZoomTransform). null은 처음 상태(전국)
 function toTransform(viewport: MapViewport | null): ZoomTransform {
@@ -69,14 +73,20 @@ export function MapView({ regions, visitCounts, onRegionClick, viewport, onViewp
   const [transform, setTransform] = useState(() => toTransform(viewport));
 
   // ---- 그리기: d3로 지역 모양 → path 글자 (전국이 판에 꽉 차게 맞춘다) ----
-  const drawnRegions = useMemo(() => {
+  const { projection, drawnRegions, paths } = useMemo(() => {
     const collection = {
       type: "FeatureCollection" as const,
       features: regions.map((region) => ({ type: "Feature" as const, properties: {}, geometry: region.geometry })),
     };
-    const toPath = geoPath(geoMercator().fitSize([WIDTH, HEIGHT], collection));
-    return regions.map((region) => ({ ...region, d: toPath(region.geometry) ?? "" }));
+    const projection = geoMercator().fitSize([WIDTH, HEIGHT], collection);
+    const toPath = geoPath(projection);
+    const drawnRegions = regions.map((region) => ({ ...region, d: toPath(region.geometry) ?? "" }));
+    return { projection, drawnRegions, paths: drawnRegions.map((region) => region.d) };
   }, [regions]);
+
+  // ---- 지형 무늬: 2번 이상 간 지역이 있을 때만 그림을 그린다 (F-12) ----
+  const hasMany = regions.some((region) => getColorStage(visitCounts[region.code] ?? 0) === "many");
+  const terrainImage = useTerrainImage({ width: WIDTH, height: HEIGHT, projection, paths }, hasMany);
 
   // ---- 확대·이동: 계산은 d3가 한다 ----
 
@@ -204,6 +214,13 @@ export function MapView({ regions, visitCounts, onRegionClick, viewport, onViewp
       onPointerCancel={handlePointerEnd}
       onClick={handleMapClick}
     >
+      <defs>
+        {/* 전국 크기의 지형 그림 한 장을 지도 판과 같은 자리에 깐다. 각 지역에는 그 자리의 지형이 보인다 */}
+        <pattern id={TERRAIN_PATTERN_ID} patternUnits="userSpaceOnUse" x={0} y={0} width={WIDTH} height={HEIGHT}>
+          <rect width={WIDTH} height={HEIGHT} fill={FILL.many} />
+          {terrainImage && <image href={terrainImage} width={WIDTH} height={HEIGHT} />}
+        </pattern>
+      </defs>
       <g transform={transform.toString()}>
         {drawnRegions.map((region) => {
           const stage = getColorStage(visitCounts[region.code] ?? 0);
@@ -215,7 +232,7 @@ export function MapView({ regions, visitCounts, onRegionClick, viewport, onViewp
               tabIndex={0}
               aria-label={region.name}
               data-color-stage={stage}
-              fill={FILL[stage]}
+              fill={stage === "many" ? `url(#${TERRAIN_PATTERN_ID})` : FILL[stage]}
               stroke="#6b7280"
               strokeWidth={0.5}
               vectorEffect="non-scaling-stroke"
