@@ -475,6 +475,26 @@ function getTodayInSeoul(now: Date): DateString;
 function getErrorMessage(code: string): string;
 ```
 
+입력 규칙(Zod)도 같은 곳에 둔다. 화면과 서버(v0.2~)가 같이 쓴다.
+
+```ts
+// 검사 결과. 검사 순서는 API_SPEC 5장을 따르고, 실패하면 먼저 걸린 에러 하나만 돌려준다
+type TripRuleResult<T> =
+  | { success: true; data: T }                  // 통과. 빠진 값을 채운 값 (종료일 null, 일기 "", 동네 [])
+  | { success: false; code: TripRuleErrorCode }; // 실패. API_SPEC 2장의 에러 코드 중 하나
+
+// 새 여행 규칙
+// now: 지금 시각. "오늘"은 getTodayInSeoul(now)로 구한다 (테스트에서 시각을 정해 넣을 수 있게)
+// regionCodes: 코드 목록 파일의 시·군·구 코드 (테스트에서는 가짜 코드 목록)
+function validateNewTrip(
+  input: unknown,
+  options: { now: Date; regionCodes: ReadonlySet<RegionCode> },
+): TripRuleResult<NewTrip>;
+
+// 수정 규칙. 4개 필드가 모두 있어야 하고, 지역은 받지 않는다 (API_SPEC 3-3)
+function validateTripUpdate(input: unknown, options: { now: Date }): TripRuleResult<TripInput>;
+```
+
 | 함수 | 쓰는 곳 | 관련 기능 | 버전 |
 |---|---|---|---|
 | `countVisits` | HomePage | F-08, F-12 | v0.1 |
@@ -492,6 +512,8 @@ function getErrorMessage(code: string): string;
 | `toFormValue` | EditTripPage | F-05 | v0.1 |
 | `getTodayInSeoul` | DateFields, Zod 규칙 | F-03, F-05 | v0.1 |
 | `getErrorMessage` | TripForm, FormError, 각 페이지 | F-03, F-05, F-06 | v0.1 |
+| `validateNewTrip` | TripForm, TripStoreProvider (v0.1), POST API (v0.2~) | F-03 | v0.1 |
+| `validateTripUpdate` | TripForm, TripStoreProvider (v0.1), PUT API (v0.2~) | F-05 | v0.1 |
 
 - 순서 주의: 번호는 **오래된 순**으로 매기고(`assignTripNumbers`), 보여 줄 때는 **최신순**으로 줄 세운다(`sortTripsNewestFirst`). 그래서 목록 맨 위가 가장 큰 번호다
 
