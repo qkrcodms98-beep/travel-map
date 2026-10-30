@@ -23,6 +23,9 @@
 - src/types/      : 공유 타입
 - public/data/    : 지도 경계 데이터
 - docs/           : 명세 문서
+- tests/          : 설정 확인 테스트, 테스트용 가짜 데이터(fixtures)
+- scripts/        : 지도 데이터 받기·변환 스크립트
+- data-raw/       : 지도 원본 파일 (Git에 올리지 않음)
 
 ## 반드시 참고할 문서
 - docs/IDEA.md (모든 결정의 기준)
