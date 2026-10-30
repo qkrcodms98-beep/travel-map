@@ -448,6 +448,9 @@ interface ConfirmDialogProps {
 | 확인 창에서 "취소"를 누른다 | 창을 닫고 아무것도 지우지 않는다 |
 
 - **삭제 확인은 DeleteTripButton이 ConfirmDialog를 열어서 맡는다.** API는 확인 없이 바로 지우기 때문이다 (API_SPEC 3-4)
+- ConfirmDialog는 `role="dialog"`, `aria-modal="true"`인 상자이고, 화면 읽기용 이름은 `title`이다. `open`이 false면 아무것도 그리지 않는다
+- 삭제 중에는 DeleteTripButton이 `confirmLabel`을 "삭제 중…"으로 바꾸고, 그동안 확인 창의 "삭제"를 다시 눌러도 `onDelete`를 또 부르지 않는다
+- `src/components/DeleteTripButton.tsx`, `src/components/ConfirmDialog.tsx`에서 각각 내보낸다
 
 ### 3-13. StatusMessage — 모든 화면
 
