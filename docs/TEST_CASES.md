@@ -8,12 +8,14 @@
 | 묶음 | 무엇을 | 도구 | 처음 쓰는 버전 |
 |---|---|---|---|
 | LOGIC | `src/lib`의 계산 함수 (COMPONENT_SPEC 4장) | Jest | v0.1 |
-| VAL | 입력 검사 (Zod 규칙). 화면과 서버가 같은 규칙을 쓴다 | Jest | v0.1 |
+| VAL | 입력 검사. 화면(Zod)과 백엔드(파이썬)가 같은 규칙을 쓴다 | 화면: Jest / 백엔드: pytest | 화면 v0.1, 백엔드 v0.2 |
+| BE | 백엔드 함수 (글자 세기, 한국 날짜, TRD 5장) | pytest | v0.2 |
 | UI | 컴포넌트와 페이지 (COMPONENT_SPEC 3장) | Jest + React Testing Library | v0.1 |
-| API | API 주소 4개 (API_SPEC 3장) | Jest (API 핸들러를 직접 부른다) | v0.2 |
+| API | API 주소 4개 (API_SPEC 3장) | pytest + FastAPI TestClient (서버를 켜지 않고 부른다) | v0.2 |
 | MANUAL | 눈으로 확인하는 테스트 (8장) | 사람이 직접 | v0.1 |
 
 - "버전" 칸은 그 테스트를 **처음 쓰는 버전**이다. 한 번 만든 테스트는 이후 버전에서도 계속 통과해야 한다
+- 프런트 테스트는 `npm test`, 백엔드 테스트는 `backend/`에서 `uv run python -m pytest`로 돌린다 (CLAUDE.md)
 - 예외: 상황에 "v0.3까지"라고 적힌 테스트(VAL-42, API-21)는 v0.4에서 동네 선택이 생기면서 규칙이 바뀐다. 이때는 지우지 않고, v0.4 테스트(VAL-43~47, API-22~23)와 함께 "동네 코드 파일이 없을 때"의 테스트로 바꿔 남긴다
 - 테스트를 삭제하거나 건너뛰지 않는다. 실패하면 테스트가 아니라 구현을 고친다 (CLAUDE.md)
 
@@ -31,10 +33,12 @@
 
 - 전체 땅 넓이 = 1 + 3 = 4. A만 가 보면 완성도 25%, 둘 다 가 보면 100%
 - 코드 목록 파일(TRD 6장)도 같은 내용으로 가짜를 만든다
+  - 화면: `tests/fixtures/codes.ts`
+  - 백엔드: `backend/tests/`에 같은 내용의 가짜 코드 목록을 두고, 진짜 `codes.json` 대신 넣는다 (의존성 주입, TRD 8장)
 - 형식은 맞지만 없는 지역 코드: `99999`. 없는 동네 코드: `9999999999`
 
 ### 기준 시각
-- "오늘"이 필요한 테스트는 지금 시각을 직접 넣는다 (`getTodayInSeoul(now)`)
+- "오늘"이 필요한 테스트는 지금 시각을 직접 넣는다 (화면: `getTodayInSeoul(now)`, 백엔드: `today_in_seoul(now)`, API 테스트는 "지금 시각" 의존성을 바꿔 끼운다)
 - 따로 적지 않으면 기준 시각은 `2026-10-29T03:00:00Z` (한국 시간 2026-10-29 12:00), 오늘 = `2026-10-29`
 
 ### 가짜 여행
@@ -155,7 +159,7 @@ DATA_MODEL 3장 규칙이다. 지도 파일과 코드 목록 파일을 만들 �
 
 ### 3-9. 글자 세기와 자르기 (`countDiaryChars`, `cutToMaxChars`)
 
-화면(DiaryField)과 서버(Zod 규칙)가 같은 함수를 쓴다. 그래서 이 함수만 맞으면 화면과 서버의 글자 수가 같다.
+화면(DiaryField)과 화면의 Zod 규칙이 같은 함수를 쓴다. 백엔드는 파이썬 `count_diary_chars`를 따로 두고, 같은 값으로 BE-01~04에서 확인한다.
 
 | ID | 대상 | 상황 | 기대 결과 | 기능 | 버전 |
 |---|---|---|---|---|---|
@@ -166,9 +170,29 @@ DATA_MODEL 3장 규칙이다. 지도 파일과 코드 목록 파일을 만들 �
 | LOGIC-94 | `cutToMaxChars` | "가" 2,100자, max 2,000 | "가" 2,000자 | F-03 | v0.1 |
 | LOGIC-95 | `cutToMaxChars` | "가" 1,999자 + `"😀😀"`, max 2,000 | "가" 1,999자 + `"😀"` (이모지가 반으로 쪼개지지 않는다) | F-03 | v0.1 |
 
+### 3-10. 백엔드 함수 (BE, pytest)
+
+화면 쪽 짝 함수와 **같은 값, 같은 결과**다. 화면과 백엔드의 결과가 어긋나지 않게 하는 테스트다 (TRD 5장).
+
+| ID | 대상 | 상황 | 기대 결과 | 화면 쪽 짝 | 기능 | 버전 |
+|---|---|---|---|---|---|---|
+| BE-01 | `count_diary_chars` | `""` | `0` | LOGIC-90 | F-03 | v0.2 |
+| BE-02 | `count_diary_chars` | `"가😀a"` | `3` | LOGIC-91 | F-03 | v0.2 |
+| BE-03 | `count_diary_chars` | 😀 2,000개 | `2000` | LOGIC-92 | F-03 | v0.2 |
+| BE-04 | `count_diary_chars` | 가족 이모지 `"👨‍👩‍👧"` | `5` (DB가 세는 수와 같다) | LOGIC-93 | F-03 | v0.2 |
+| BE-05 | `today_in_seoul` | `2026-10-29T03:00:00Z` (한국 12:00) | `"2026-10-29"` | LOGIC-60 | F-03, F-05 | v0.2 |
+| BE-06 | `today_in_seoul` | `2026-10-28T15:30:00Z` (한국 2026-10-29 새벽 00:30) | `"2026-10-29"` (UTC 날짜 `10-28`이 아니다) | LOGIC-61 | F-03, F-05 | v0.2 |
+| BE-07 | `today_in_seoul` | `2026-10-29T14:59:59Z` (한국 23:59:59) | `"2026-10-29"` | LOGIC-62 | F-03, F-05 | v0.2 |
+| BE-08 | `today_in_seoul` | `2026-10-29T15:00:00Z` (한국 2026-10-30 00:00) | `"2026-10-30"` | LOGIC-63 | F-03, F-05 | v0.2 |
+
+- BE-05~08은 Windows에서도 통과해야 한다 (`tzdata` 패키지가 없으면 Asia/Seoul을 찾지 못한다, TRD 8장)
+
 ## 4. VAL (입력 검사)
 
-- 화면(v0.1의 TripStore, TripForm)과 서버(v0.2~)가 **같은 Zod 규칙**을 쓰므로 한 번만 테스트한다
+- 화면(v0.1의 TripStore, TripForm)은 Zod 규칙(`validateNewTrip`, `validateTripUpdate`)으로, 백엔드(v0.2~)는 파이썬 검사 함수로 검사한다
+- 두 곳은 코드를 같이 쓰지 않으므로 **아래 표 하나를 화면(Jest)과 백엔드(pytest)에서 각각 테스트한다.** 같은 상황이면 같은 에러 코드가 나와야 한다
+- 백엔드에서는 "대상" 칸의 "새 여행 규칙"·"수정 규칙"을 백엔드의 같은 역할 함수로 읽는다. 버전 칸이 v0.1이어도 백엔드 테스트는 v0.2부터다
+- "모르는 필드", "타입이 틀림"(VAL-50~52, 54, 56)은 백엔드에서 Pydantic 모델이 거른다. 이것도 같은 에러 코드(`INVALID_REQUEST`)여야 한다
 - 따로 적지 않으면 검사하는 값은 아래 "정상 값"에서 한 칸만 바꾼 것이다
 - 정상 값: `{ regionCode: "99010", startDate: "2026-10-01", endDate: null, diary: "", dongCodes: [] }`
 
@@ -200,7 +224,7 @@ DATA_MODEL 3장 규칙이다. 지도 파일과 코드 목록 파일을 만들 �
 
 ### 4-3. 여행일기와 글자 수
 
-글자 수는 "문자 하나를 1자"로 센다 (API_SPEC 5장). 이모지 😀는 1자다. 화면의 남은 글자 수(UI-46~49)와 서버 검사는 같은 함수 `countDiaryChars`(LOGIC-90~93)로 센다.
+글자 수는 "문자 하나를 1자"로 센다 (API_SPEC 5장). 이모지 😀는 1자다. 화면의 남은 글자 수(UI-46~49)와 화면 검사는 같은 함수 `countDiaryChars`(LOGIC-90~93)로, 백엔드 검사는 `count_diary_chars`(BE-01~04)로 센다.
 
 | ID | 대상 | 상황 | 기대 결과 | 기능 | 버전 |
 |---|---|---|---|---|---|
@@ -211,7 +235,7 @@ DATA_MODEL 3장 규칙이다. 지도 파일과 코드 목록 파일을 만들 �
 | VAL-34 | 새 여행 규칙 | 😀 2,001개 | `DIARY_TOO_LONG` | F-03 | v0.1 |
 | VAL-35 | 새 여행 규칙 | "가" 1,999자 + 😀 1개 | 통과 (2,000자) | F-03 | v0.1 |
 | VAL-36 | 새 여행 규칙 | "가" 1,999자 + 😀 2개 | `DIARY_TOO_LONG` (2,001자) | F-03 | v0.1 |
-| VAL-37 | 새 여행 규칙 | "가😀a" | 3자로 세어 통과. Zod 규칙이 `countDiaryChars`를 쓰는지 확인한다 (화면 UI-47과 같은 함수) | F-03 | v0.1 |
+| VAL-37 | 새 여행 규칙 | "가😀a" | 3자로 세어 통과. 화면은 Zod 규칙이 `countDiaryChars`를 쓰는지(UI-47과 같은 함수), 백엔드는 `count_diary_chars`를 쓰는지 확인한다 | F-03 | v0.1 |
 
 ### 4-4. 지역과 동네
 
@@ -353,10 +377,11 @@ DATA_MODEL 3장 규칙이다. 지도 파일과 코드 목록 파일을 만들 �
 
 ## 6. API
 
+- 백엔드(`backend/tests/`)에서 pytest + FastAPI TestClient로 부른다
 - 따로 적지 않으면 v0.2(서버 메모리)와 v0.3(DB) 모두에서 같은 결과여야 한다
-- v0.3 이후의 DB 테스트는 테스트용 DB를 쓴다. DB 주소는 `.env`에만 두고 테스트 코드에 적지 않는다
-- 서버의 "지금 시각"은 테스트에서 정해 준다
-- 모든 에러 응답은 `{ "error": { "code": "...", "message": "..." } }` 모양이다 (API-60)
+- v0.3 이후의 DB 테스트는 테스트용 DB를 쓴다. DB 주소는 `backend/.env`에만 두고 테스트 코드에 적지 않는다
+- 서버의 "지금 시각", 저장소, 코드 목록은 의존성을 바꿔 끼워 테스트에서 정해 준다. 테스트마다 빈 저장소로 시작한다
+- 모든 에러 응답은 `{ "error": { "code": "...", "message": "..." } }` 모양이다 (API-60, API-61)
 
 ### 6-1. 목록 `GET /api/trips`
 
@@ -368,6 +393,7 @@ DATA_MODEL 3장 규칙이다. 지도 파일과 코드 목록 파일을 만들 �
 | API-04 | GET `/api/trips?regionCode=abc` | | `400`, `INVALID_REGION_CODE` | F-02 | v0.2 |
 | API-05 | GET `/api/trips?regionCode=99999` | | `400`, `INVALID_REGION_CODE` | F-02 | v0.2 |
 | API-06 | GET `/api/trips` | 아무 여행 | 응답에 `tripNumber` 같은 계산 값이 없다. 필드는 `Trip`의 8개뿐 | F-07 | v0.2 |
+| API-07 | GET `/api/trips` | 아무 여행 | 필드 이름이 camelCase다 (`startDate`, `createdAt` 등. `start_date`가 아니다). `createdAt`·`updatedAt`은 `"2026-05-05T09:12:30.000Z"`처럼 밀리초 3자리 + `Z` 모양 | F-02 | v0.2 |
 
 ### 6-2. 추가 `POST /api/trips`
 
@@ -388,6 +414,8 @@ DATA_MODEL 3장 규칙이다. 지도 파일과 코드 목록 파일을 만들 �
 | API-22 | POST | A 지역에 B의 동네 | `400`, `INVALID_DONG_CODE` | F-11 | v0.4 |
 | API-23 | POST | 같은 동네 두 번 | `400`, `DUPLICATE_DONG_CODE` | F-11 | v0.4 |
 | API-24 | POST | 모르는 필드 | `400`, `INVALID_REQUEST` | F-03 | v0.2 |
+| API-25 | POST | camelCase 대신 snake_case로 보냄 `{ regionCode: "99010", start_date: "2026-10-01" }` | `400`, `INVALID_REQUEST` (`start_date`는 모르는 필드다) | F-03 | v0.2 |
+| API-26 | POST | `diary: 123` (타입이 틀림) | `400`, `INVALID_REQUEST` (글자로 바꿔 저장하지 않는다) | F-03 | v0.2 |
 
 ### 6-3. 수정 `PUT /api/trips/{id}`
 
@@ -422,20 +450,23 @@ DATA_MODEL 3장 규칙이다. 지도 파일과 코드 목록 파일을 만들 �
 | API-52 | 서버 문제 | 저장소가 예외를 던지게 만듦 | `500`, `INTERNAL_ERROR`, 메시지 "잠시 후 다시 시도해 주세요." | F-09, F-10 | v0.2 |
 | API-53 | 서버 문제 | API-52의 응답 본문 | DB 주소, 비밀번호, 서버 내부 오류 내용이 들어 있지 않다 | F-10 | v0.2 |
 | API-60 | 에러 모양 | 위 API 테스트의 모든 에러 응답 | `{ "error": { "code", "message" } }` 모양이고, `code`는 API_SPEC 2장 표에 있는 값이다 | 전체 | v0.2 |
+| API-61 | 에러 모양 | 위 API 테스트의 모든 에러 응답 | 상태 코드가 `422`인 것이 없고, FastAPI 기본 모양 `{ "detail": ... }`이 없다 | 전체 | v0.2 |
+| API-62 | CORS | `Origin: http://localhost:3000`을 붙여 GET | 응답에 `Access-Control-Allow-Origin: http://localhost:3000`이 있다 | F-09 | v0.2 |
+| API-63 | CORS | `Origin: http://evil.example`을 붙여 GET | 응답에 `Access-Control-Allow-Origin`이 없다 (허락한 주소만) | F-09 | v0.2 |
 
 ## 7. 기능 ID별 테스트
 
 | 기능 | 테스트 |
 |---|---|
 | F-01 전국 지도 보기 | LOGIC-80~88, UI-01, UI-05, UI-13, UI-14, UI-16, UI-17, UI-92, MANUAL-04 |
-| F-02 지역 여행 목록 | LOGIC-20~23, LOGIC-40~48, UI-20~31, API-01, API-03~05 |
-| F-03 여행 추가 | LOGIC-60~63, LOGIC-70~72, LOGIC-90~95, VAL-01~52, VAL-57~59, UI-40~55, UI-93~97, API-10~24 |
+| F-02 지역 여행 목록 | LOGIC-20~23, LOGIC-40~48, UI-20~31, API-01, API-03~05, API-07 |
+| F-03 여행 추가 | LOGIC-60~63, LOGIC-70~72, LOGIC-90~95, BE-01~08, VAL-01~52, VAL-57~59, UI-40~55, UI-93~97, API-10~26 |
 | F-04 여행 상세 | UI-25, UI-70~75 |
-| F-05 여행 수정 | LOGIC-73, LOGIC-74, VAL-53~56, UI-56~58, API-30~38 |
+| F-05 여행 수정 | LOGIC-73, LOGIC-74, BE-05~08, VAL-53~56, UI-56~58, API-30~38 |
 | F-06 여행 삭제 | UI-76~80, API-40~44 |
 | F-07 여행 번호 매기기 | LOGIC-10~18, LOGIC-22, UI-21, UI-22, UI-58, UI-79, API-06, API-38 |
 | F-08 지도 색칠 | LOGIC-01~06, UI-02, UI-03, UI-15, API-02, MANUAL-02 |
-| F-09 서버에 기록 저장 | API-50, API-52 |
+| F-09 서버에 기록 저장 | API-50, API-52, API-62, API-63 |
 | F-10 기록 유지 | API-51, API-53, MANUAL-10 |
 | F-11 동네 선택 | VAL-43~47, UI-60~63, UI-72, UI-73, API-22, API-23 |
 | F-12 지형 무늬 색칠 | LOGIC-05, LOGIC-06, UI-04, MANUAL-01 |
@@ -475,5 +506,6 @@ DATA_MODEL 3장 규칙이다. 지도 파일과 코드 목록 파일을 만들 �
 | 2,000자 넘게 붙여 넣으면 2,000자까지만 들어가고 "2,000자까지만 쓸 수 있어요." 안내 | COMPONENT_SPEC 3-8·4장 (`cutToMaxChars`) | LOGIC-94·95, UI-95~97 |
 | 완성도는 소수 첫째 자리까지 버림. 모든 지역을 가 봤을 때만 100% | COMPONENT_SPEC 3-3·4장, TRD 5장 | LOGIC-32, LOGIC-96~99 |
 | 구 합치기 함수 `toMergedRegionCode`는 `src/lib`에 둔다 | COMPONENT_SPEC 4장, TRD 5장·6장 | LOGIC-80~88 |
+| 백엔드를 FastAPI로 바꿈 (v0.2). 화면과 백엔드가 코드를 같이 쓸 수 없어, 백엔드는 `count_diary_chars`·`today_in_seoul`과 검사 함수를 따로 두고 같은 값으로 테스트한다. 위 첫 줄의 "화면과 서버가 같이 쓴다"는 이제 화면 안에서만 해당한다 | TRD 5장·8장, API_SPEC 5장 | BE-01~08, VAL 전체(pytest), API-07, API-25~26, API-61~63 |
 
 - VAL-42, API-21은 v0.4에서 지우지 않고 바꿔서 남긴다 (1장)

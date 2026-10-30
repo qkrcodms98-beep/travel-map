@@ -9,19 +9,29 @@
 - 코드를 쓴 뒤에는 무엇을 왜 바꿨는지 초보자 눈높이로 짧게 설명해줘
 
 ## 기술 스택
+### 프런트엔드 (화면만 담당)
 - Next.js 15 (App Router), React 19, TypeScript (strict)
 - Tailwind CSS
 - 지도: d3, topojson-client (지도 데이터는 public/data/)
-- DB: Postgres (Neon) + Drizzle ORM (v0.3부터)
-- 검증: Zod
+- 검증: Zod (화면의 폼 검사에만 쓴다)
 - 테스트: Jest + React Testing Library
+- 백엔드 주소: 환경 변수 NEXT_PUBLIC_API_URL (개발: http://localhost:8000)
+
+### 백엔드 (v0.2부터, backend/ 폴더)
+- Python 3.12, 패키지 관리는 uv
+- FastAPI + Pydantic v2
+- DB: Neon Postgres + SQLAlchemy 2.0 + Alembic + psycopg (v0.3부터)
+- 테스트: pytest + FastAPI TestClient
+- JSON 필드 이름은 camelCase, 파이썬 코드 안에서는 snake_case
+- 지역 코드 검사는 public/data/codes.json을 읽어서 한다
 
 ## 폴더 구조
-- app/            : 페이지와 API 라우트
+- app/            : 페이지 (API 라우트는 만들지 않는다. API는 backend/가 맡는다)
 - src/components/ : 화면 컴포넌트
-- src/lib/        : 서버 로직, DB, 계산 함수(방문 횟수, 색칠 단계, 여행 번호, 목록 정렬, 지도 완성도)
-- src/types/      : 공유 타입
-- public/data/    : 지도 경계 데이터
+- src/lib/        : 화면 계산 함수(방문 횟수, 색칠 단계, 여행 번호, 목록 정렬, 지도 완성도), 폼 검사(Zod)
+- src/types/      : 프런트 공유 타입
+- backend/        : FastAPI 백엔드 (API, 입력 검사, 여행 저장소, DB)
+- public/data/    : 지도 경계 데이터 (백엔드도 codes.json을 읽는다)
 - docs/           : 명세 문서
 - tests/          : 설정 확인 테스트, 테스트용 가짜 데이터(fixtures)
 - scripts/        : 지도 데이터 받기·변환 스크립트
@@ -57,15 +67,22 @@
 ## 규칙
 - 명세에 없는 기능을 임의로 추가하지 말 것 (특히 사진, 녹음, 로그인, 공유, 백업, 다른 나라 지도는 아직 금지)
 - 노래 음원은 저작권 문제로 넣지 않음
-- any 타입 금지
+- TypeScript any 타입 금지
+- 파이썬 타입 힌트 필수, Any 금지
 - 한 번에 한 기능만 작업하고, 끝나면 무엇을 바꿨는지 요약할 것
 - 테스트를 삭제하거나 skip하지 말 것. 실패하면 테스트가 아닌 구현을 고칠 것
 - 지도 색칠 규칙, 여행 번호, 지도 완성도는 계산 함수로 따로 두고 테스트할 것
 - 비밀번호와 DB 주소는 .env 파일에만. 출력하거나 코드에 적지 말 것
 - v2.0(로그인) 전에는 배포 주소를 알면 누구나 볼 수 있으므로, 예시·테스트 데이터에 실제 개인 기록을 넣지 말 것
-- console.log는 디버깅 후 제거할 것
+- console.log와 print는 디버깅 후 제거할 것
 - 이해할 수 있게 주석은 한국어로 짧게
 
 ## 자주 쓰는 명령
-- 개발 서버: npm run dev
+### 프런트엔드 (프로젝트 루트에서)
+- 개발 서버: npm run dev (http://localhost:3000)
 - 테스트: npm test
+
+### 백엔드 (backend/ 폴더에서)
+- 이 PC는 Scripts 폴더의 .exe 실행이 막혀 있으므로 항상 `python -m` 형태로 실행한다
+- 서버: uv run python -m uvicorn app.main:app --reload --port 8000
+- 테스트: uv run python -m pytest
