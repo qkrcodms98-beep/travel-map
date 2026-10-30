@@ -1,5 +1,6 @@
 # 의존성: 저장소, 지금 시각, 코드 목록, 설정. 테스트에서 바꿔 끼울 수 있게 여기 모은다 (TRD 8장)
 import os
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from functools import cache
 from pathlib import Path
@@ -7,7 +8,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from pydantic import BaseModel
 
-from app.repository import MemoryTripRepository, TripRepository
+from app.db import get_session_factory
+from app.repository import SqlTripRepository, TripRepository
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 # 화면과 같은 코드 목록 파일 (TRD 6장)
@@ -27,12 +29,10 @@ class CodesFile(BaseModel):
     regions: list[RegionEntry]
 
 
-# 서버가 켜져 있는 동안 하나의 저장소를 같이 쓴다 (v0.2 서버 메모리)
-_memory_repo = MemoryTripRepository()
-
-
-def get_repo() -> TripRepository:
-    return _memory_repo
+# 요청마다 DB 세션을 열고, 응답이 끝나면 닫는다 (v0.3 DB 저장)
+def get_repo() -> Iterator[TripRepository]:
+    with get_session_factory()() as session:
+        yield SqlTripRepository(session)
 
 
 def get_now() -> datetime:

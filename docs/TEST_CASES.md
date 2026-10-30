@@ -17,6 +17,8 @@
 - "버전" 칸은 그 테스트를 **처음 쓰는 버전**이다. 한 번 만든 테스트는 이후 버전에서도 계속 통과해야 한다
 - 프런트 테스트는 `npm test`, 백엔드 테스트는 `backend/`에서 `uv run python -m pytest`로 돌린다 (CLAUDE.md)
 - 예외: 상황에 "v0.3까지"라고 적힌 테스트(VAL-42, API-21)는 v0.4에서 동네 선택이 생기면서 규칙이 바뀐다. 이때는 지우지 않고, v0.4 테스트(VAL-43~47, API-22~23)와 함께 "동네 코드 파일이 없을 때"의 테스트로 바꿔 남긴다
+- 예외: v0.2의 `test_get_repo_returns_same_memory_repository`(`backend/tests/test_api_base.py`, "`get_repo`는 늘 같은 메모리 저장소를 준다")는 v0.3에서 저장 위치가 DB로 바뀌면서 규칙이 바뀌었다. 지우지 않고 `test_get_repo_opens_and_closes_sql_session`("`get_repo`는 요청마다 DB 세션을 열어 SQL 저장소를 주고, 응답이 끝나면 세션을 닫는다", 테스트용 DB, `-m db`)으로 바꿔 남긴다
+- DB 테스트(`@pytest.mark.db`)는 기본 `uv run python -m pytest`에서 빠지고, `uv run python -m pytest -m db`로 따로 돌린다 (v0.3)
 - 테스트를 삭제하거나 건너뛰지 않는다. 실패하면 테스트가 아니라 구현을 고친다 (CLAUDE.md)
 
 ## 2. 테스트 데이터

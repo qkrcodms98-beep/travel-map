@@ -4,11 +4,15 @@ from datetime import UTC
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
-from app.deps import get_now, get_region_codes, get_repo
+from app import deps
+from app.config import get_test_database_url
+from app.db import make_engine, make_session_factory
+from app.deps import get_now, get_region_codes
 from app.errors import ApiError
 from app.main import create_app
-from app.repository import MemoryTripRepository
+from app.repository import SqlTripRepository
 
 SECRET = "postgresql://user:secret-password@db.example/internal"
 
@@ -72,10 +76,38 @@ def test_unexpected_error_is_500_without_details(test_client: TestClient) -> Non
     assert "secret" not in response.text
 
 
-def test_get_repo_returns_same_memory_repository() -> None:
-    repo = get_repo()
-    assert isinstance(repo, MemoryTripRepository)
-    assert get_repo() is repo
+# v0.3: 요청마다 DB 세션을 열어 SQL 저장소를 주고, 끝나면 닫는다 (TEST_CASES 1장 예외)
+# 운영 DB 대신 테스트용 DB의 세션을 쓰도록 바꿔 끼운다
+@pytest.mark.db
+def test_get_repo_opens_and_closes_sql_session(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = make_engine(get_test_database_url())
+    test_factory = make_session_factory(engine)
+    opened: list[Session] = []
+
+    def open_session() -> Session:
+        session = test_factory()
+        opened.append(session)
+        return session
+
+    monkeypatch.setattr(deps, "get_session_factory", lambda: open_session)
+    try:
+        first = deps.get_repo()
+        repo = next(first)
+        assert isinstance(repo, SqlTripRepository)
+        repo.list()
+        assert opened[0].in_transaction()
+
+        # 응답이 끝나면 세션이 닫힌다
+        first.close()
+        assert not opened[0].in_transaction()
+
+        # 다음 요청은 새 세션
+        second = deps.get_repo()
+        next(second)
+        second.close()
+        assert len(opened) == 2 and opened[0] is not opened[1]
+    finally:
+        engine.dispose()
 
 
 def test_get_now_is_utc_time() -> None:
