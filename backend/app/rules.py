@@ -1,5 +1,5 @@
 import re
-from collections.abc import Set
+from collections.abc import Mapping, Set
 from datetime import date, datetime
 
 from pydantic import ValidationError
@@ -12,6 +12,7 @@ from app.schemas import NewTrip, NewTripBody, RequestModel, TripInput, TripUpdat
 # \d는 다른 나라 숫자도 받아서 0-9로 적는다
 DATE_PATTERN = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 REGION_CODE_PATTERN = re.compile(r"[0-9]{5}")
+DONG_CODE_PATTERN = re.compile(r"[0-9]{10}")
 
 # 단계 번호는 API_SPEC 5장의 검사 순서다. 먼저 걸린 에러 하나만 던진다
 
@@ -53,8 +54,20 @@ def check_region_code(region_code: str, region_codes: Set[str]) -> None:
         raise ApiError("INVALID_REGION_CODE")
 
 
+# 8단계: 동네 코드 (v0.4). 동네마다 숫자 10자리이고, 코드 목록에 있고, 그 지역의 동네인지 본 다음 겹치는지 본다
+# dong_regions: 동네 코드 → 속한 시·군·구 코드. 비어 있으면 어떤 동네도 받지 않는다
+def check_dong_codes(dong_codes: list[str], region_code: str, dong_regions: Mapping[str, str]) -> None:
+    for dong_code in dong_codes:
+        if not DONG_CODE_PATTERN.fullmatch(dong_code) or dong_regions.get(dong_code) != region_code:
+            raise ApiError("INVALID_DONG_CODE")
+    if len(set(dong_codes)) != len(dong_codes):
+        raise ApiError("DUPLICATE_DONG_CODE")
+
+
 # 새 여행 규칙
-def validate_new_trip(data: object, *, now: datetime, region_codes: Set[str]) -> NewTrip:
+def validate_new_trip(
+    data: object, *, now: datetime, region_codes: Set[str], dong_regions: Mapping[str, str]
+) -> NewTrip:
     body = parse_body(NewTripBody, data)
     # 2단계
     if not body.start_date:
@@ -63,9 +76,8 @@ def validate_new_trip(data: object, *, now: datetime, region_codes: Set[str]) ->
     check_dates_and_diary(body.start_date, body.end_date, body.diary, now)
     # 7단계: 형식과 코드 목록 둘 다 본다
     check_region_code(body.region_code, region_codes)
-    # 8단계: v0.3까지는 동네를 받지 않는다
-    if body.dong_codes:
-        raise ApiError("INVALID_DONG_CODE")
+    # 8단계
+    check_dong_codes(body.dong_codes, body.region_code, dong_regions)
 
     return NewTrip(
         region_code=body.region_code,
@@ -77,16 +89,18 @@ def validate_new_trip(data: object, *, now: datetime, region_codes: Set[str]) ->
 
 
 # 수정 규칙. 지역은 받지 않으므로 7단계가 없다 (API_SPEC 3-3)
-def validate_trip_update(data: object, *, now: datetime) -> TripInput:
+# region_code: 고치는 여행의 지역 (동네가 그 지역의 동네인지 볼 때 쓴다)
+def validate_trip_update(
+    data: object, *, now: datetime, region_code: str, dong_regions: Mapping[str, str]
+) -> TripInput:
     body = parse_body(TripUpdateBody, data)
     # 2단계
     if not body.start_date:
         raise ApiError("START_DATE_REQUIRED")
     # 3~6단계
     check_dates_and_diary(body.start_date, body.end_date, body.diary, now)
-    # 8단계: v0.3까지는 동네를 받지 않는다
-    if body.dong_codes:
-        raise ApiError("INVALID_DONG_CODE")
+    # 8단계
+    check_dong_codes(body.dong_codes, region_code, dong_regions)
 
     return TripInput(
         start_date=body.start_date,

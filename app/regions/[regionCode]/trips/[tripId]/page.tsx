@@ -9,6 +9,7 @@ import { StatusMessage } from "@/components/StatusMessage";
 import { TripDetail } from "@/components/TripDetail";
 import { useTripStore } from "@/components/TripStoreProvider";
 import { useRegionTrip } from "@/components/useRegionTrip";
+import { getDongNames } from "@/lib/dongCodes";
 import { formatTripNumber } from "@/lib/formatTripNumber";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 import { errorCodeOf } from "@/lib/tripStoreError";
@@ -58,7 +59,7 @@ export default function TripDetailPage() {
   return (
     <main>
       <PageHeader title={formatTripNumber(trip.tripNumber)} backHref={regionHref} />
-      <TripDetail trip={trip} dongNames={[]} />
+      <TripDetail trip={trip} dongNames={getDongNames(trip.dongCodes)} />
       <Link href={`${regionHref}/trips/${trip.id}/edit`} className="m-4 inline-block rounded border px-3 py-1">
         수정
       </Link>

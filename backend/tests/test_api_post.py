@@ -2,8 +2,10 @@
 from datetime import UTC, datetime
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from app.deps import get_dong_regions
 from app.repository import MemoryTripRepository
 from app.schemas import NewTrip, Trip
 from tests.conftest import Clock
@@ -75,9 +77,21 @@ def test_api20_region_code_not_in_list(client: TestClient) -> None:
     assert_error(client.post(URL, json={**VALID, "regionCode": "99999"}), 400, "INVALID_REGION_CODE")
 
 
-# v0.3까지는 동네를 받지 않는다
-def test_api21_dong_codes_not_allowed_yet(client: TestClient) -> None:
+# 동네 코드 목록이 비어 있으면(v0.3까지는 늘 이랬다) 동네를 받지 않는다
+def test_api21_dong_codes_rejected_when_dong_list_is_empty(client: TestClient) -> None:
+    app = client.app
+    assert isinstance(app, FastAPI)
+    app.dependency_overrides[get_dong_regions] = lambda: {}
     assert_error(client.post(URL, json={**VALID, "dongCodes": ["9901010100"]}), 400, "INVALID_DONG_CODE")
+
+
+def test_api22_dong_of_other_region(client: TestClient) -> None:
+    assert_error(client.post(URL, json={**VALID, "dongCodes": ["9902010100"]}), 400, "INVALID_DONG_CODE")
+
+
+def test_api23_duplicate_dong(client: TestClient) -> None:
+    body = {**VALID, "dongCodes": ["9901010100", "9901010100"]}
+    assert_error(client.post(URL, json=body), 400, "DUPLICATE_DONG_CODE")
 
 
 def test_api24_unknown_field(client: TestClient) -> None:

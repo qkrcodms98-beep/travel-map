@@ -254,7 +254,7 @@ DATA_MODEL 3장 규칙이다. 지도 파일과 코드 목록 파일을 만들 �
 |---|---|---|---|---|---|
 | VAL-40 | 새 여행 규칙 | `regionCode: "9901"` (4자리) | `INVALID_REGION_CODE` | F-03 | v0.1 |
 | VAL-41 | 새 여행 규칙 | `regionCode: "99999"` (형식은 맞지만 코드 목록에 없음) | `INVALID_REGION_CODE` | F-03 | v0.1 |
-| VAL-42 | 새 여행 규칙 | v0.3까지, `dongCodes: ["9901010100"]` | `INVALID_DONG_CODE` (v0.4 전에는 빈 목록만) | F-03 | v0.1 |
+| VAL-42 | 새 여행 규칙 | 동네 코드 목록이 비어 있을 때(v0.3까지는 늘 이랬다), `dongCodes: ["9901010100"]` | `INVALID_DONG_CODE` | F-03 | v0.1 |
 | VAL-43 | 새 여행 규칙 | A 지역, `dongCodes: ["9901010100", "9901010200"]` | 통과 | F-11 | v0.4 |
 | VAL-44 | 새 여행 규칙 | A 지역, `dongCodes: ["9902010100"]` (B의 동네) | `INVALID_DONG_CODE` | F-11 | v0.4 |
 | VAL-45 | 새 여행 규칙 | A 지역, `dongCodes: ["9999999999"]` (없는 동네) | `INVALID_DONG_CODE` | F-11 | v0.4 |
@@ -421,7 +421,7 @@ DATA_MODEL 3장 규칙이다. 지도 파일과 코드 목록 파일을 만들 �
 | API-18 | POST → GET | 일기 😀 2,000개 | `201`. GET으로 받은 일기가 보낸 것과 똑같다 (서버가 2,000자로 세고, DB도 거부하지 않는다) | F-03 | v0.3 |
 | API-19 | POST | 일기 😀 2,001개 | `400`, `DIARY_TOO_LONG` | F-03 | v0.2 |
 | API-20 | POST | `regionCode: "99999"` | `400`, `INVALID_REGION_CODE` | F-03 | v0.2 |
-| API-21 | POST | v0.3까지, `dongCodes`에 값이 있음 | `400`, `INVALID_DONG_CODE` | F-03 | v0.2 |
+| API-21 | POST | 동네 코드 목록이 비어 있을 때(v0.3까지는 늘 이랬다), `dongCodes`에 값이 있음 | `400`, `INVALID_DONG_CODE` | F-03 | v0.2 |
 | API-22 | POST | A 지역에 B의 동네 | `400`, `INVALID_DONG_CODE` | F-11 | v0.4 |
 | API-23 | POST | 같은 동네 두 번 | `400`, `DUPLICATE_DONG_CODE` | F-11 | v0.4 |
 | API-24 | POST | 모르는 필드 | `400`, `INVALID_REQUEST` | F-03 | v0.2 |

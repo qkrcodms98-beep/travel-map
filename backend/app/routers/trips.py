@@ -1,11 +1,11 @@
 import json
-from collections.abc import Set
+from collections.abc import Mapping, Set
 from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Request, Response
 
-from app.deps import get_now, get_region_codes, get_repo
+from app.deps import get_dong_regions, get_now, get_region_codes, get_repo
 from app.errors import ApiError
 from app.repository import TripRepository
 from app.rules import check_region_code, validate_new_trip, validate_trip_update
@@ -17,6 +17,7 @@ router = APIRouter(prefix="/api/trips", tags=["trips"])
 Repo = Annotated[TripRepository, Depends(get_repo)]
 Now = Annotated[datetime, Depends(get_now)]
 RegionCodes = Annotated[Set[str], Depends(get_region_codes)]
+DongRegions = Annotated[Mapping[str, str], Depends(get_dong_regions)]
 
 
 # 본문을 JSON으로 읽는다. 깨진 JSON이면 INVALID_REQUEST (모양 검사는 rules.py가 한다)
@@ -42,17 +43,24 @@ def list_trips(
 
 # 여행 추가 (API_SPEC 3-2)
 @router.post("", status_code=201)
-async def create_trip(request: Request, repo: Repo, now: Now, region_codes: RegionCodes) -> TripResponse:
-    new_trip = validate_new_trip(await read_json(request), now=now, region_codes=region_codes)
+async def create_trip(
+    request: Request, repo: Repo, now: Now, region_codes: RegionCodes, dong_regions: DongRegions
+) -> TripResponse:
+    data = await read_json(request)
+    new_trip = validate_new_trip(data, now=now, region_codes=region_codes, dong_regions=dong_regions)
     return TripResponse(trip=TripOut.from_trip(repo.create(new_trip, now)))
 
 
 # 여행 수정 (API_SPEC 3-3). 그 id의 여행이 있는지를 내용 검사보다 먼저 본다 (5장 0단계)
 @router.put("/{trip_id}")
-async def update_trip(trip_id: str, request: Request, repo: Repo, now: Now) -> TripResponse:
-    if repo.get(trip_id) is None:
+async def update_trip(
+    trip_id: str, request: Request, repo: Repo, now: Now, dong_regions: DongRegions
+) -> TripResponse:
+    trip = repo.get(trip_id)
+    if trip is None:
         raise ApiError("TRIP_NOT_FOUND")
-    trip_input = validate_trip_update(await read_json(request), now=now)
+    data = await read_json(request)
+    trip_input = validate_trip_update(data, now=now, region_code=trip.region_code, dong_regions=dong_regions)
     updated = repo.update(trip_id, trip_input, now)
     # 확인한 사이에 지워졌을 때
     if updated is None:

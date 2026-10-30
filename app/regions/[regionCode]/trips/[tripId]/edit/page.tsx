@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusMessage } from "@/components/StatusMessage";
 import { TripForm } from "@/components/TripForm";
 import { useTripStore } from "@/components/TripStoreProvider";
+import { useDongOptions } from "@/components/useDongOptions";
 import { useRegionTrip } from "@/components/useRegionTrip";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 import { toFormValue } from "@/lib/toFormValue";
@@ -19,6 +20,7 @@ export default function EditTripPage() {
   const detailHref = `${regionHref}/trips/${tripId}`;
   // 불러오는 중이면 undefined, 찾지 못하면 null
   const trip = useRegionTrip(regionCode, tripId);
+  const dongs = useDongOptions(regionCode);
 
   async function handleSubmit(input: TripInput) {
     await store.updateTrip(tripId, input);
@@ -54,6 +56,7 @@ export default function EditTripPage() {
         mode="edit"
         regionCode={regionCode}
         initialValue={toFormValue(trip)}
+        dongs={dongs}
         onSubmit={handleSubmit}
         onCancel={() => router.push(detailHref)}
       />

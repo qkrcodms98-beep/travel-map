@@ -293,10 +293,16 @@ interface TripFormProps {
   mode: "create" | "edit";
   regionCode: RegionCode;
   initialValue?: TripFormValue;                 // 수정할 때 지금 값
-  dongOptions?: DongOption[];                   // v0.4부터
+  dongs?: DongListState;                        // v0.4부터. 그 지역의 동네 목록 상태 (빼면 동네 칸이 없다)
   onSubmit: (input: TripInput) => Promise<void>;  // 바꾼 뒤의 값 (아래)
   onCancel: () => void;
 }
+
+// 동네 목록 상태 (v0.4). 페이지가 useDongOptions()로 만들어 넘긴다
+type DongListState =
+  | { status: "loading" }                          // "동네 목록을 불러오는 중이에요…"
+  | { status: "error"; onRetry: () => void }       // "동네 목록을 불러오지 못했어요." + "다시 시도"
+  | { status: "ready"; options: DongOption[] };    // DongPicker를 보여 준다
 
 // 저장할 때 보내는 값. NewTrip에서 지역 코드를 뺀 모양
 type TripInput = Omit<NewTrip, "regionCode">;
@@ -320,10 +326,14 @@ type TripInput = Omit<NewTrip, "regionCode">;
 - 칸 아래 문구는 입력 칸의 `aria-describedby`로 이어서, 화면 읽기 프로그램이 칸과 함께 읽게 한다
 - `mode="edit"`일 때는 지역을 바꾸는 칸이 없다 (API_SPEC 3-3)
 - 버튼 글자는 새 여행 기록과 수정 모두 "저장", "취소"다
+- 동네 (v0.4): `dongs`가 `"ready"`면 DongPicker를 보여 주고, `"loading"`·`"error"`면 그 자리에 6장 문구를 `StatusMessage`로 보여 준다 (UI-63). 동네를 못 불러와도 날짜·일기는 저장할 수 있다 (고른 동네는 그대로 보낸다)
+- 동네 검사는 `DONG_REGIONS`(4장 `src/lib/dongCodes.ts`)로 한다. `INVALID_DONG_CODE`·`DUPLICATE_DONG_CODE`는 동네 선택 아래(`DongPicker`의 `error`)에 보여 주고, 동네 칸이 없으면 폼 위쪽에 보여 준다
 
 ### 3-6-1. 새 여행 기록 화면 (NewTripPage, `app/regions/[regionCode]/trips/new/page.tsx`) — F-03
 
 - 브라우저에서 도는 화면이다. 주소의 지역 코드는 `useParams()`로 읽는다
+- 동네 목록은 `useDongOptions(지역 코드)`(`src/components/useDongOptions.ts`)로 받아 `TripForm`의 `dongs`에 넣는다 (v0.4)
+  - `src/lib/dongCodes.ts`를 따로 떼어 불러오므로(`import()`) 잠깐 불러오는 중이 있고, 불러오기에 실패할 수 있다. "다시 시도"를 누르면 다시 불러온다
 - 저장: `useTripStore().createTrip({ regionCode, ...input })`가 끝나면 지역 화면(`/regions/[지역 코드]`)으로 이동한다
 - 취소: 지역 화면으로 이동한다 (뒤로 가기 버튼과 같은 곳. 주소로 바로 들어온 경우에도 앱 밖으로 나가지 않게 `router.back()` 대신 주소로 간다)
 
@@ -331,6 +341,7 @@ type TripInput = Omit<NewTrip, "regionCode">;
 
 - 여행은 여행 상세 화면(3-11-1)과 같은 방법으로 찾는다. 찾지 못하면 같은 문구와 "지역 화면으로" 버튼을 보여 준다
 - 찾으면 `toFormValue(여행)`을 `TripForm`(`mode="edit"`)의 `initialValue`로 넣는다
+- 동네 목록은 새 여행 기록 화면과 같이 `useDongOptions(지역 코드)`로 받는다 (v0.4)
 - 저장: `useTripStore().updateTrip(여행 id, input)`이 끝나면 여행 상세로 이동한다
 - 취소: 여행 상세로 이동한다 (뒤로 가기 버튼과 같은 곳)
 
@@ -417,6 +428,11 @@ interface DongPickerProps {
 | 칸 이름 | 다녀온 동네 |
 | 칸 아래 안내 | 여러 곳을 고를 수 있어요. |
 
+- `src/components/DongPicker.tsx`에서 내보낸다. `DongOption` 타입은 `src/types/region.ts`에 둔다
+- `<fieldset>`(이름은 `<legend>` "다녀온 동네") 안에 동네마다 체크 상자(`<input type="checkbox">`)를 하나씩 둔다. 체크 상자의 이름은 동네 이름이다
+- 고른 순서대로 `selected` 뒤에 붙이고, 뺄 때는 그 동네만 뺀다
+- 동네 목록은 `getDongOptions(지역 코드)`(4장)의 순서(코드 목록 파일 순서) 그대로 보여 준다
+
 ### 3-10. FormError — F-03, F-05
 
 ```ts
@@ -438,6 +454,7 @@ interface TripDetailProps {
 
 - 번호는 화면 제목(PageHeader)에 보여 주고, 본문에는 날짜, 다녀온 동네(v0.4), 여행일기를 보여 준다
 - 날짜 글자는 목록과 같이 `formatTripDates()`로 만든다
+- 여행 상세 화면은 `getDongNames(여행의 dongCodes)`(4장)로 `dongNames`를 만든다. 동네 이름은 `<ul>` 목록으로 보여 준다 (v0.4)
 
 | 글자 | 문구 |
 |---|---|
@@ -602,13 +619,26 @@ type TripRuleResult<T> =
 // 새 여행 규칙
 // now: 지금 시각. "오늘"은 getTodayInSeoul(now)로 구한다 (테스트에서 시각을 정해 넣을 수 있게)
 // regionCodes: 코드 목록 파일의 시·군·구 코드 (테스트에서는 가짜 코드 목록)
+// dongRegions (v0.4): 동네 코드 → 그 동네가 속한 시·군·구 코드. 빼면 빈 목록으로 본다 (동네를 하나라도 보내면 INVALID_DONG_CODE)
 function validateNewTrip(
   input: unknown,
-  options: { now: Date; regionCodes: ReadonlySet<RegionCode> },
+  options: { now: Date; regionCodes: ReadonlySet<RegionCode>; dongRegions?: ReadonlyMap<DongCode, RegionCode> },
 ): TripRuleResult<NewTrip>;
 
 // 수정 규칙. 4개 필드가 모두 있어야 하고, 지역은 받지 않는다 (API_SPEC 3-3)
-function validateTripUpdate(input: unknown, options: { now: Date }): TripRuleResult<TripInput>;
+// dongs (v0.4): 동네를 검사할 때 쓰는 그 여행의 지역 코드와 dongRegions. 빼면 동네를 하나라도 보내면 INVALID_DONG_CODE
+function validateTripUpdate(
+  input: unknown,
+  options: { now: Date; dongs?: { regionCode: RegionCode; dongRegions: ReadonlyMap<DongCode, RegionCode> } },
+): TripRuleResult<TripInput>;
+
+// 8단계 동네 검사 순서 (v0.4): 동네마다 숫자 10자리인지, 코드 목록에 있는지, 그 지역의 동네인지 → INVALID_DONG_CODE
+// 그다음 같은 동네가 두 번 있는지 → DUPLICATE_DONG_CODE
+
+// 동네 (v0.4, src/lib/dongCodes.ts). 코드 목록 파일(public/data/codes.json)의 dongs를 읽는 유일한 곳
+const DONG_REGIONS: ReadonlyMap<DongCode, RegionCode>;               // 동네 코드 → 속한 시·군·구 코드
+function getDongOptions(regionCode: RegionCode): DongOption[];        // 그 지역의 동네 (코드 목록 파일 순서)
+function getDongNames(dongCodes: DongCode[]): string[];               // 코드 → 이름. 목록에 없는 코드는 뺀다
 
 // "YYYY-MM-DD" 모양이고 실제 있는 날짜인지 (규칙 안에서 쓰고, TripForm이 INVALID_DATE를 칸마다 나눌 때도 쓴다)
 function isRealDate(value: string): boolean;
@@ -621,6 +651,7 @@ function isRealDate(value: string): boolean;
 | `assignTripNumbers` | RegionPage, TripDetailPage | F-07 | v0.1 |
 | `sortTripsNewestFirst` | RegionPage | F-02 | v0.1 |
 | `calcCompletion` | HomePage | F-13 | v0.4 |
+| `DONG_REGIONS`, `getDongOptions`, `getDongNames` | TripForm, useDongOptions, TripDetailPage, TripStoreProvider (v0.1) | F-11 | v0.4 |
 | `terrainHeight`, `terrainColor`, `paintTerrain` | MapView (지형 무늬 그림) | F-12 | v0.4 |
 | `countDiaryChars` | DiaryField, Zod 규칙 | F-03, F-05 | v0.1 |
 | `cutToMaxChars` | DiaryField | F-03, F-05 | v0.1 |

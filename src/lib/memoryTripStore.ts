@@ -1,3 +1,4 @@
+import { DONG_REGIONS } from "@/lib/dongCodes";
 import { REGION_CODES } from "@/lib/regionCodes";
 import { TripStoreError } from "@/lib/tripStoreError";
 import { validateNewTrip, validateTripUpdate } from "@/lib/tripRules";
@@ -21,7 +22,7 @@ export function createMemoryTripStore(): TripStore {
 
     async createTrip(input) {
       const now = new Date();
-      const result = validateNewTrip(input, { now, regionCodes: REGION_CODES });
+      const result = validateNewTrip(input, { now, regionCodes: REGION_CODES, dongRegions: DONG_REGIONS });
       if (!result.success) throw new TripStoreError(result.code);
       const savedAt = now.toISOString();
       const trip: Trip = { ...result.data, id: crypto.randomUUID(), createdAt: savedAt, updatedAt: savedAt };
@@ -32,7 +33,7 @@ export function createMemoryTripStore(): TripStore {
     async updateTrip(id, input) {
       const old = findTripOrThrow(id);
       const now = new Date();
-      const result = validateTripUpdate(input, { now });
+      const result = validateTripUpdate(input, { now, dongs: { regionCode: old.regionCode, dongRegions: DONG_REGIONS } });
       if (!result.success) throw new TripStoreError(result.code);
       const updated: Trip = { ...old, ...result.data, updatedAt: now.toISOString() };
       trips = trips.map((trip) => (trip.id === id ? updated : trip));

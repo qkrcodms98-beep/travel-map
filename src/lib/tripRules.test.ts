@@ -1,6 +1,6 @@
 import { countDiaryChars } from "@/lib/countDiaryChars";
 import { validateNewTrip, validateTripUpdate } from "@/lib/tripRules";
-import { FAKE_REGION_CODES } from "../../tests/fixtures/codes";
+import { FAKE_DONG_REGIONS, FAKE_REGION_CODES } from "../../tests/fixtures/codes";
 
 // countDiaryChars는 진짜로 동작하게 두고, 불렸는지만 볼 수 있게 감싼다 (VAL-37)
 jest.mock("@/lib/countDiaryChars", () => {
@@ -17,6 +17,11 @@ const VALID_UPDATE = { startDate: "2026-10-01", endDate: null, diary: "", dongCo
 
 function checkNew(input: unknown, now: Date = NOW) {
   return validateNewTrip(input, { now, regionCodes: FAKE_REGION_CODES });
+}
+
+// 동네 코드 목록까지 넣어 검사한다 (v0.4)
+function checkNewWithDongs(input: unknown, dongRegions: ReadonlyMap<string, string> = FAKE_DONG_REGIONS) {
+  return validateNewTrip(input, { now: NOW, regionCodes: FAKE_REGION_CODES, dongRegions });
 }
 
 function checkUpdate(input: unknown, now: Date = NOW) {
@@ -156,9 +161,37 @@ describe("validateNewTrip 지역과 동네", () => {
     expect(checkNew({ ...VALID_NEW, regionCode: "99999" })).toEqual(fail("INVALID_REGION_CODE"));
   });
 
-  // v0.3까지는 빈 목록만 받는다
-  it("VAL-42 dongCodes에 값이 있으면 INVALID_DONG_CODE", () => {
-    expect(checkNew({ ...VALID_NEW, dongCodes: ["9901010100"] })).toEqual(fail("INVALID_DONG_CODE"));
+  // 동네 코드 목록이 비어 있으면(v0.3까지는 늘 이랬다) 동네를 받지 않는다
+  it("VAL-42 동네 코드 목록이 비어 있을 때 dongCodes에 값이 있으면 INVALID_DONG_CODE", () => {
+    expect(checkNewWithDongs({ ...VALID_NEW, dongCodes: ["9901010100"] }, new Map())).toEqual(
+      fail("INVALID_DONG_CODE"),
+    );
+  });
+});
+
+// 새 여행 규칙: 동네 (TEST_CASES 4-4, v0.4)
+describe("validateNewTrip 동네", () => {
+  it("VAL-43 A 지역에 A의 동네 두 곳은 통과한다", () => {
+    const input = { ...VALID_NEW, dongCodes: ["9901010100", "9901010200"] };
+    expect(checkNewWithDongs(input)).toEqual({ success: true, data: input });
+  });
+
+  it("VAL-44 A 지역에 B의 동네는 INVALID_DONG_CODE", () => {
+    expect(checkNewWithDongs({ ...VALID_NEW, dongCodes: ["9902010100"] })).toEqual(fail("INVALID_DONG_CODE"));
+  });
+
+  it("VAL-45 없는 동네는 INVALID_DONG_CODE", () => {
+    expect(checkNewWithDongs({ ...VALID_NEW, dongCodes: ["9999999999"] })).toEqual(fail("INVALID_DONG_CODE"));
+  });
+
+  it("VAL-46 10자리가 아닌 동네 코드는 INVALID_DONG_CODE", () => {
+    expect(checkNewWithDongs({ ...VALID_NEW, dongCodes: ["99010"] })).toEqual(fail("INVALID_DONG_CODE"));
+  });
+
+  it("VAL-47 같은 동네를 두 번 보내면 DUPLICATE_DONG_CODE", () => {
+    expect(checkNewWithDongs({ ...VALID_NEW, dongCodes: ["9901010100", "9901010100"] })).toEqual(
+      fail("DUPLICATE_DONG_CODE"),
+    );
   });
 });
 

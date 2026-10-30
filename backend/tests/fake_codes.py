@@ -14,3 +14,10 @@ FAKE_CODES: dict[str, object] = {
 
 # 가짜 지역 코드 모음 (A, B)
 FAKE_REGION_CODES: frozenset[str] = frozenset({"99010", "99020"})
+
+# 가짜 동네 코드 → 속한 지역 코드 (가동·나동은 A, 다동은 B)
+FAKE_DONG_REGIONS: dict[str, str] = {
+    "9901010100": "99010",
+    "9901010200": "99010",
+    "9902010100": "99020",
+}

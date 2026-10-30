@@ -7,10 +7,10 @@ from datetime import UTC, datetime
 import pytest
 from fastapi.testclient import TestClient
 
-from app.deps import get_now, get_region_codes, get_repo
+from app.deps import get_dong_regions, get_now, get_region_codes, get_repo
 from app.main import create_app
 from app.repository import MemoryTripRepository
-from tests.fake_codes import FAKE_REGION_CODES
+from tests.fake_codes import FAKE_DONG_REGIONS, FAKE_REGION_CODES
 
 
 # 테스트에서 바꿀 수 있는 시계. 기본은 한국 2026-10-29 12:00 (TEST_CASES 2장)
@@ -35,6 +35,7 @@ def client(repo: MemoryTripRepository, clock: Clock) -> Iterator[TestClient]:
     app.dependency_overrides[get_repo] = lambda: repo
     app.dependency_overrides[get_now] = lambda: clock.now
     app.dependency_overrides[get_region_codes] = lambda: FAKE_REGION_CODES
+    app.dependency_overrides[get_dong_regions] = lambda: FAKE_DONG_REGIONS
     # 서버 에러도 예외로 터뜨리지 않고 500 응답으로 받는다 (API-52)
     with TestClient(app, raise_server_exceptions=False) as test_client:
         yield test_client

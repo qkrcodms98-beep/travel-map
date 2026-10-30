@@ -92,3 +92,25 @@ describe("TripForm 저장 중", () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("TripForm 동네 목록 (v0.4)", () => {
+  function renderWithDongs(dongs: React.ComponentProps<typeof TripForm>["dongs"]) {
+    render(<TripForm mode="create" regionCode="99010" dongs={dongs} onSubmit={onSubmit} onCancel={jest.fn()} />);
+  }
+
+  it("UI-63 동네 목록을 불러오는 중이면 '동네 목록을 불러오는 중이에요…'", () => {
+    renderWithDongs({ status: "loading" });
+
+    expect(screen.getByText("동네 목록을 불러오는 중이에요…")).toBeInTheDocument();
+  });
+
+  it("UI-63 동네 목록을 못 불러오면 '동네 목록을 불러오지 못했어요.' + '다시 시도'. 누르면 다시 불러온다", async () => {
+    const user = setupUser();
+    const onRetry = jest.fn();
+    renderWithDongs({ status: "error", onRetry });
+
+    expect(screen.getByText("동네 목록을 불러오지 못했어요.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+});

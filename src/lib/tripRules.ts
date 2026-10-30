@@ -1,13 +1,14 @@
 import { z } from "zod";
 import { countDiaryChars } from "@/lib/countDiaryChars";
 import { getTodayInSeoul } from "@/lib/getTodayInSeoul";
-import type { RegionCode } from "@/types/region";
+import type { DongCode, RegionCode } from "@/types/region";
 import type { DateString, NewTrip, TripInput } from "@/types/trip";
 
 // 여행일기 최대 글자 수 (화면의 DiaryField도 같이 쓴다)
 export const DIARY_MAX_CHARS = 2000;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const REGION_CODE_PATTERN = /^\d{5}$/;
+const DONG_CODE_PATTERN = /^\d{10}$/;
 
 // 입력 규칙이 돌려주는 에러 코드 (API_SPEC 2장)
 export type TripRuleErrorCode =
@@ -18,7 +19,8 @@ export type TripRuleErrorCode =
   | "END_DATE_BEFORE_START"
   | "DIARY_TOO_LONG"
   | "INVALID_REGION_CODE"
-  | "INVALID_DONG_CODE";
+  | "INVALID_DONG_CODE"
+  | "DUPLICATE_DONG_CODE";
 
 type TripRuleFailure = { success: false; code: TripRuleErrorCode };
 
@@ -70,10 +72,27 @@ function checkDatesAndDiary(
   return null;
 }
 
+// 동네 코드 → 속한 시·군·구 코드. 비어 있으면 어떤 동네도 받지 않는다
+type DongRegions = ReadonlyMap<DongCode, RegionCode>;
+const NO_DONGS: DongRegions = new Map();
+
+// 8단계: 동네 (v0.4). 동네마다 숫자 10자리이고, 코드 목록에 있고, 그 지역의 동네인지 본 다음 겹치는지 본다
+function checkDongCodes(
+  dongCodes: DongCode[],
+  regionCode: RegionCode,
+  dongRegions: DongRegions,
+): TripRuleErrorCode | null {
+  for (const dongCode of dongCodes) {
+    if (!DONG_CODE_PATTERN.test(dongCode) || dongRegions.get(dongCode) !== regionCode) return "INVALID_DONG_CODE";
+  }
+  if (new Set(dongCodes).size !== dongCodes.length) return "DUPLICATE_DONG_CODE";
+  return null;
+}
+
 // 새 여행 규칙
 export function validateNewTrip(
   input: unknown,
-  options: { now: Date; regionCodes: ReadonlySet<RegionCode> },
+  options: { now: Date; regionCodes: ReadonlySet<RegionCode>; dongRegions?: DongRegions },
 ): TripRuleResult<NewTrip> {
   const shape = newTripShape.safeParse(input);
   if (!shape.success) return fail("INVALID_REQUEST");
@@ -89,14 +108,19 @@ export function validateNewTrip(
   if (!REGION_CODE_PATTERN.test(regionCode) || !options.regionCodes.has(regionCode)) {
     return fail("INVALID_REGION_CODE");
   }
-  // 8단계: v0.3까지는 동네를 받지 않는다
-  if (dongCodes.length > 0) return fail("INVALID_DONG_CODE");
+  // 8단계
+  const dongError = checkDongCodes(dongCodes, regionCode, options.dongRegions ?? NO_DONGS);
+  if (dongError) return fail(dongError);
 
   return { success: true, data: { regionCode, startDate, endDate, diary, dongCodes } };
 }
 
 // 수정 규칙. 지역은 받지 않으므로 7단계가 없다 (API_SPEC 3-3)
-export function validateTripUpdate(input: unknown, options: { now: Date }): TripRuleResult<TripInput> {
+// dongs: 동네 검사에 쓰는 그 여행의 지역 코드와 동네 목록. 빼면 동네를 받지 않는다
+export function validateTripUpdate(
+  input: unknown,
+  options: { now: Date; dongs?: { regionCode: RegionCode; dongRegions: DongRegions } },
+): TripRuleResult<TripInput> {
   const shape = tripUpdateShape.safeParse(input);
   if (!shape.success) return fail("INVALID_REQUEST");
 
@@ -106,8 +130,10 @@ export function validateTripUpdate(input: unknown, options: { now: Date }): Trip
   // 3~6단계
   const fieldError = checkDatesAndDiary(startDate, endDate, diary, options.now);
   if (fieldError) return fail(fieldError);
-  // 8단계: v0.3까지는 동네를 받지 않는다
-  if (dongCodes.length > 0) return fail("INVALID_DONG_CODE");
+  // 8단계
+  const { regionCode, dongRegions } = options.dongs ?? { regionCode: "", dongRegions: NO_DONGS };
+  const dongError = checkDongCodes(dongCodes, regionCode, dongRegions);
+  if (dongError) return fail(dongError);
 
   return { success: true, data: { startDate, endDate, diary, dongCodes } };
 }

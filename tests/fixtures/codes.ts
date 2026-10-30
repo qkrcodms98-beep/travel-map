@@ -14,3 +14,8 @@ export const FAKE_CODES = {
 
 // 가짜 지역 코드 모음 (A, B)
 export const FAKE_REGION_CODES: ReadonlySet<string> = new Set(FAKE_CODES.regions.map((region) => region.code));
+
+// 가짜 동네 코드 → 속한 지역 코드 (가동·나동은 A, 다동은 B)
+export const FAKE_DONG_REGIONS: ReadonlyMap<string, string> = new Map(
+  FAKE_CODES.dongs.map((dong) => [dong.code, dong.regionCode]),
+);

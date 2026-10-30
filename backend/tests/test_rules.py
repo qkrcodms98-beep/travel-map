@@ -1,5 +1,5 @@
 # VAL: 입력 검사 (TEST_CASES 4장). 화면의 src/lib/tripRules.test.ts와 같은 값, 같은 결과
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
 
 import pytest
@@ -8,7 +8,7 @@ import app.rules
 from app.errors import ApiError
 from app.rules import validate_new_trip, validate_trip_update
 from app.schemas import NewTrip, TripInput
-from tests.fake_codes import FAKE_REGION_CODES
+from tests.fake_codes import FAKE_DONG_REGIONS, FAKE_REGION_CODES
 
 # 기준 시각: 한국 2026-10-29 12:00 (TEST_CASES 2장)
 NOW = datetime(2026, 10, 29, 3, 0, 0, tzinfo=UTC)
@@ -26,12 +26,12 @@ VALID_UPDATE: dict[str, object] = {"startDate": "2026-10-01", "endDate": None, "
 EXPECTED_NEW = NewTrip(region_code="99010", start_date="2026-10-01", end_date=None, diary="", dong_codes=[])
 
 
-def check_new(data: object, now: datetime = NOW) -> NewTrip:
-    return validate_new_trip(data, now=now, region_codes=FAKE_REGION_CODES)
+def check_new(data: object, now: datetime = NOW, dong_regions: Mapping[str, str] = FAKE_DONG_REGIONS) -> NewTrip:
+    return validate_new_trip(data, now=now, region_codes=FAKE_REGION_CODES, dong_regions=dong_regions)
 
 
 def check_update(data: object, now: datetime = NOW) -> TripInput:
-    return validate_trip_update(data, now=now)
+    return validate_trip_update(data, now=now, region_code="99010", dong_regions=FAKE_DONG_REGIONS)
 
 
 # 검사가 실패할 때 나온 에러 코드
@@ -174,9 +174,31 @@ def test_val41_region_code_not_in_list() -> None:
     assert error_code(lambda: check_new(new_with(regionCode="99999"))) == "INVALID_REGION_CODE"
 
 
-# v0.3까지는 빈 목록만 받는다
-def test_val42_dong_codes_not_allowed_yet() -> None:
-    assert error_code(lambda: check_new(new_with(dongCodes=["9901010100"]))) == "INVALID_DONG_CODE"
+# 동네 코드 목록이 비어 있으면(v0.3까지는 늘 이랬다) 동네를 받지 않는다
+def test_val42_dong_codes_rejected_when_dong_list_is_empty() -> None:
+    assert error_code(lambda: check_new(new_with(dongCodes=["9901010100"]), dong_regions={})) == "INVALID_DONG_CODE"
+
+
+# 4-4. 동네 (v0.4)
+def test_val43_two_dongs_of_region_pass() -> None:
+    result = check_new(new_with(dongCodes=["9901010100", "9901010200"]))
+    assert result.dong_codes == ["9901010100", "9901010200"]
+
+
+def test_val44_dong_of_other_region() -> None:
+    assert error_code(lambda: check_new(new_with(dongCodes=["9902010100"]))) == "INVALID_DONG_CODE"
+
+
+def test_val45_dong_not_in_list() -> None:
+    assert error_code(lambda: check_new(new_with(dongCodes=["9999999999"]))) == "INVALID_DONG_CODE"
+
+
+def test_val46_dong_code_not_10_digits() -> None:
+    assert error_code(lambda: check_new(new_with(dongCodes=["99010"]))) == "INVALID_DONG_CODE"
+
+
+def test_val47_duplicate_dong() -> None:
+    assert error_code(lambda: check_new(new_with(dongCodes=["9901010100", "9901010100"]))) == "DUPLICATE_DONG_CODE"
 
 
 # 4-5. 모양과 검사 순서

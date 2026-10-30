@@ -1,12 +1,13 @@
 # 의존성: 저장소, 지금 시각, 코드 목록, 설정. 테스트에서 바꿔 끼울 수 있게 여기 모은다 (TRD 8장)
 import os
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from datetime import UTC, datetime
 from functools import cache
 from pathlib import Path
+from types import MappingProxyType
 
 from dotenv import load_dotenv
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.db import get_session_factory
 from app.repository import SqlTripRepository, TripRepository
@@ -25,8 +26,20 @@ class RegionEntry(BaseModel):
     code: str
 
 
+class DongEntry(BaseModel):
+    code: str
+    region_code: str = Field(alias="regionCode")
+
+
 class CodesFile(BaseModel):
     regions: list[RegionEntry]
+    dongs: list[DongEntry] = []
+
+
+# 코드 목록 파일. 처음 한 번만 읽어 둔다
+@cache
+def read_codes_file() -> CodesFile:
+    return CodesFile.model_validate_json(CODES_PATH.read_text(encoding="utf-8"))
 
 
 # 요청마다 DB 세션을 열고, 응답이 끝나면 닫는다 (v0.3 DB 저장)
@@ -39,11 +52,16 @@ def get_now() -> datetime:
     return datetime.now(UTC)
 
 
-# 시·군·구 코드 모음. 처음 한 번만 읽어 둔다
+# 시·군·구 코드 모음
 @cache
 def get_region_codes() -> frozenset[str]:
-    codes = CodesFile.model_validate_json(CODES_PATH.read_text(encoding="utf-8"))
-    return frozenset(region.code for region in codes.regions)
+    return frozenset(region.code for region in read_codes_file().regions)
+
+
+# 동네 코드 → 그 동네가 속한 시·군·구 코드 (v0.4)
+@cache
+def get_dong_regions() -> Mapping[str, str]:
+    return MappingProxyType({dong.code: dong.region_code for dong in read_codes_file().dongs})
 
 
 # CORS로 허락할 화면 주소들. 쉼표로 여러 개를 적을 수 있다
