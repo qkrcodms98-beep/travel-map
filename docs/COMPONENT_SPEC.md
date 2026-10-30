@@ -153,8 +153,8 @@ interface CompletionBadgeProps {
 - 첫 화면 위쪽에 "지도 완성도 12.3%"처럼 보여 준다. 글자는 `formatPercent()`로 만든다
   - 0이면 "0%"
   - 0보다 크고 0.1 미만이면 "0.1% 미만" (서울 중구처럼 작은 지역 하나만 가 봐도 "0.0%"로 보이지 않게)
-  - 100이면 "100%"
-  - 그 밖에는 소수점 첫째 자리까지 반올림 ("12.3%")
+  - 100이면 "100%". 100은 **모든 지역을 가 봤을 때만** 나온다 (`calcCompletion`이 정한다)
+  - 그 밖에는 소수점 첫째 자리까지 **버림** ("12.39" → "12.3%", "99.96" → "99.9%"). 다 다녀오지 않았는데 반올림으로 "100.0%"가 되는 일을 막는다
 - 누르는 동작은 없다
 
 ### 3-4. PageHeader — F-02, F-03, F-04, F-05
@@ -286,15 +286,18 @@ interface DiaryFieldProps {
 |---|---|
 | 일기를 쓴다 | 칸 아래에 "남은 글자 1,234자"를 보여 준다 |
 | 2,000자가 된다 | 더 입력되지 않는다. "남은 글자 0자"로 보여 준다 |
+| 2,000자가 넘는 글을 붙여 넣는다 | 2,000자까지만 들어가고, 칸 아래에 "2,000자까지만 쓸 수 있어요."를 보여 준다. 자를 때 이모지를 반으로 쪼개지 않는다 (`cutToMaxChars`) |
 
 | 글자 | 문구 |
 |---|---|
 | 칸 이름 | 여행일기 |
 | 비어 있을 때 칸 안 안내 | 이 여행에서 있었던 일을 적어 보세요. |
 | 남은 글자 수 | 남은 글자 1,234자 (천 단위에 쉼표) |
+| 붙여 넣은 글이 잘렸을 때 | 2,000자까지만 쓸 수 있어요. |
 
 - **일기 남은 글자 수는 DiaryField가 맡는다**
-- 글자를 세는 방법은 API_SPEC 5장을 따르고, 확인은 TEST_CASES에서 한다
+- 글자는 `src/lib`의 `countDiaryChars`(4장)로 센다. 서버 검사와 같은 함수라서 화면과 서버의 글자 수가 항상 같다 (API_SPEC 5장)
+- 브라우저 입력 칸의 기본 글자 제한(`maxLength`)은 이모지를 2자로 세므로 쓰지 않는다
 
 ### 3-9. DongPicker — F-11 (v0.4)
 
@@ -426,10 +429,21 @@ function assignTripNumbers(trips: Trip[]): TripWithNumber[];
 function sortTripsNewestFirst(trips: TripWithNumber[]): TripWithNumber[];
 
 // 지도 완성도: 가 본 시·군·구 넓이 ÷ 전체 땅 넓이 × 100 (v0.4)
+// 모든 지역을 가 봤으면 나눗셈 없이 정확히 100을 돌려준다 (소수 계산 오차로 99.99…가 되지 않게)
 function calcCompletion(
   visitedRegionCodes: RegionCode[],
   regionAreas: Record<RegionCode, number>, // 지도 데이터에 미리 넣어 둔 넓이 (TRD 6장)
 ): number;
+
+// 글자 세기: 문자 하나를 1자로 센다 (이모지 😀도 1자). 화면(DiaryField)과 서버(Zod 규칙)가 같이 쓴다
+function countDiaryChars(text: string): number;
+
+// 글자 자르기: countDiaryChars 기준으로 max자까지만 남긴다. 이모지를 반으로 쪼개지 않는다
+function cutToMaxChars(text: string, max: number): string;
+
+// 구 합치기: 일반 시의 구 코드 → 합친 시 코드. 그 밖의 코드는 그대로 (DATA_MODEL 3장)
+// 예: "41111" → "41110", "43745"(증평군) → "43745", "11215"(광진구) → "11215"
+function toMergedRegionCode(sggCode: string): RegionCode;
 ```
 
 화면 글자를 만드는 함수도 같은 곳에 둔다.
@@ -438,7 +452,7 @@ function calcCompletion(
 // 1 → "첫 번째 여행", 2 → "두 번째 여행" … 10 → "열 번째 여행", 11 → "11번째 여행"
 function formatTripNumber(tripNumber: number): string;
 
-// 0 → "0%", 0.04 → "0.1% 미만", 12.345 → "12.3%", 100 → "100%" (3-3)
+// 0 → "0%", 0.04 → "0.1% 미만", 12.39 → "12.3%"(버림), 99.96 → "99.9%", 100 → "100%" (3-3)
 function formatPercent(percent: number): string;
 
 // 여행 날짜 글자
@@ -468,6 +482,9 @@ function getErrorMessage(code: string): string;
 | `assignTripNumbers` | RegionPage, TripDetailPage | F-07 | v0.1 |
 | `sortTripsNewestFirst` | RegionPage | F-02 | v0.1 |
 | `calcCompletion` | HomePage | F-13 | v0.4 |
+| `countDiaryChars` | DiaryField, Zod 규칙 (화면·서버) | F-03, F-05 | v0.1 |
+| `cutToMaxChars` | DiaryField | F-03, F-05 | v0.1 |
+| `toMergedRegionCode` | 지도 파일·코드 목록 파일 만들기 | F-01 | v0.1 |
 | `formatTripNumber` | TripListItem, TripDetail | F-02, F-04 | v0.1 |
 | `formatPercent` | CompletionBadge | F-13 | v0.4 |
 | `formatTripDates` | TripListItem, TripDetail | F-02, F-04 | v0.1 |
