@@ -33,3 +33,11 @@ export interface TripFormValue {
 
 // 저장할 때 보내는 값. NewTrip에서 지역 코드를 뺀 모양 (수정할 때 지역은 못 바꾼다)
 export type TripInput = Omit<NewTrip, "regionCode">;
+
+// 여행 기록을 읽고 쓰는 함수 모음 (COMPONENT_SPEC 3-1). 메모리 저장소와 API 저장소가 같은 모양을 지킨다
+export interface TripStore {
+  listTrips(regionCode?: RegionCode): Promise<Trip[]>;
+  createTrip(input: NewTrip): Promise<Trip>;
+  updateTrip(id: string, input: TripInput): Promise<Trip>;
+  deleteTrip(id: string): Promise<void>;
+}

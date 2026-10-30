@@ -11,6 +11,8 @@ const ERROR_MESSAGES = new Map<string, string>([
   ["DUPLICATE_DONG_CODE", "같은 동네를 두 번 고를 수 없어요."],
   ["TRIP_NOT_FOUND", "여행을 찾을 수 없어요. 이미 삭제되었을 수 있어요."],
   ["INTERNAL_ERROR", "잠시 후 다시 시도해 주세요."],
+  // 서버에 닿지 못함 (화면에서만 쓰는 코드, v0.2~)
+  ["NETWORK_ERROR", "인터넷 연결을 확인하고 다시 시도해 주세요."],
 ]);
 
 const UNKNOWN_ERROR_MESSAGE = "문제가 생겼어요. 잠시 후 다시 시도해 주세요.";

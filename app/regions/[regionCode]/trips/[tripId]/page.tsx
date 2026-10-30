@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { DeleteTripButton } from "@/components/DeleteTripButton";
@@ -10,6 +11,7 @@ import { useTripStore } from "@/components/TripStoreProvider";
 import { useRegionTrip } from "@/components/useRegionTrip";
 import { formatTripNumber } from "@/lib/formatTripNumber";
 import { getErrorMessage } from "@/lib/getErrorMessage";
+import { errorCodeOf } from "@/lib/tripStoreError";
 
 // 여행 상세 화면 (COMPONENT_SPEC 3-11-1)
 export default function TripDetailPage() {
@@ -19,10 +21,17 @@ export default function TripDetailPage() {
   const regionHref = `/regions/${regionCode}`;
   // 불러오는 중이면 undefined, 찾지 못하면 null
   const trip = useRegionTrip(regionCode, tripId);
+  // 삭제가 실패했을 때의 에러 코드 (v0.2~)
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   async function handleDelete() {
-    await store.deleteTrip(tripId);
-    router.push(regionHref);
+    setDeleteError(null);
+    try {
+      await store.deleteTrip(tripId);
+      router.push(regionHref);
+    } catch (error) {
+      setDeleteError(errorCodeOf(error));
+    }
   }
 
   if (trip === undefined) {
@@ -54,6 +63,14 @@ export default function TripDetailPage() {
         수정
       </Link>
       <DeleteTripButton onDelete={handleDelete} />
+      {deleteError && (
+        <StatusMessage
+          kind="error"
+          message={getErrorMessage(deleteError)}
+          actionLabel="다시 시도"
+          onAction={handleDelete}
+        />
+      )}
     </main>
   );
 }

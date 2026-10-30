@@ -1,6 +1,6 @@
 import { TripStoreError } from "@/lib/tripStoreError";
 import type { RegionCode } from "@/types/region";
-import type { NewTrip, Trip, TripInput } from "@/types/trip";
+import type { NewTrip, Trip, TripInput, TripStore } from "@/types/trip";
 
 // FastAPI 백엔드의 여행 API 4개를 부르는 함수 (API_SPEC 3장)
 
@@ -75,3 +75,11 @@ export async function updateTrip(id: string, input: TripInput): Promise<Trip> {
 export async function deleteTrip(id: string): Promise<void> {
   await request(tripPath(id), { method: "DELETE" });
 }
+
+// v0.2~: 백엔드를 부르는 저장소 (TripStoreProvider의 기본값)
+export const apiTripStore: TripStore = {
+  listTrips: fetchTrips,
+  createTrip,
+  updateTrip,
+  deleteTrip,
+};

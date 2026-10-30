@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TripStoreProvider, useTripStore } from "@/components/TripStoreProvider";
+import { createMemoryTripStore } from "@/lib/memoryTripStore";
 import { validateNewTrip } from "@/lib/tripRules";
 import type { NewTrip, Trip } from "@/types/trip";
 
@@ -91,7 +92,7 @@ function FakeApp() {
           지역 화면으로
         </button>
       </nav>
-      <TripStoreProvider>
+      <TripStoreProvider store={createMemoryTripStore()}>
         {page === "new" && <FakeNewTripPage />}
         {page === "home" && <FakeHomePage />}
         {page === "region" && <FakeRegionPage />}
@@ -153,7 +154,7 @@ describe("TripStoreProvider (v0.1)", () => {
     // 오늘 = 2026-10-29, 시작일 = 2026-10-30 (내일)
     const future: NewTrip = { ...NEW_TRIP, startDate: "2026-10-30" };
     render(
-      <TripStoreProvider>
+      <TripStoreProvider store={createMemoryTripStore()}>
         <FakeCreateWithError input={future} />
       </TripStoreProvider>,
     );

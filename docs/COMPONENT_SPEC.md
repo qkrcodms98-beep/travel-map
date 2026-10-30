@@ -85,6 +85,7 @@ interface TripStore {
 
 interface TripStoreProviderProps {
   children: React.ReactNode;
+  store?: TripStore; // 빼면 API 저장소 (v0.2~). 테스트에서는 createMemoryTripStore()를 넣는다. 처음 받은 저장소를 계속 쓴다
 }
 
 // 부품은 이 함수로 저장소를 꺼낸다. TripStoreProvider 바깥에서 부르면 에러를 던진다
@@ -103,7 +104,10 @@ class TripStoreError extends Error {
 | 버전 | 안에서 하는 일 |
 |---|---|
 | v0.1 | 브라우저 메모리에 저장한다. 입력 검사도 화면의 Zod 규칙(`validateNewTrip`, `validateTripUpdate`)으로 하고, 실패하면 API_SPEC과 같은 에러 코드를 낸다 |
-| v0.2 ~ | FastAPI 백엔드의 4개 주소(API_SPEC, `NEXT_PUBLIC_API_URL` 뒤에 붙임)를 부른다. 서버 검사는 백엔드가 한다 |
+| v0.2 ~ | FastAPI 백엔드의 4개 주소(API_SPEC, `NEXT_PUBLIC_API_URL` 뒤에 붙임)를 부른다(`src/lib/tripApi.ts`의 `apiTripStore`). 서버 검사는 백엔드가 한다. 서버에 닿지 못하면 `NETWORK_ERROR`를 던진다 |
+
+- v0.1의 메모리 저장소는 `src/lib/memoryTripStore.ts`의 `createMemoryTripStore()`로 남겨, 테스트에서 `store`로 넣어 쓴다
+- `TripStore` 타입은 `src/types/trip.ts`, `TripStoreError`는 `src/lib/tripStoreError.ts`에 두고 이 파일에서 다시 내보낸다
 
 - 버전이 바뀌어도 `TripStore`의 모양과 에러 코드는 같다. 그래서 v0.2에서 저장 위치를 바꿔도 페이지와 부품은 고치지 않는다 (TRD 3장)
 
@@ -465,6 +469,7 @@ interface ConfirmDialogProps {
 - **삭제 확인은 DeleteTripButton이 ConfirmDialog를 열어서 맡는다.** API는 확인 없이 바로 지우기 때문이다 (API_SPEC 3-4)
 - ConfirmDialog는 `role="dialog"`, `aria-modal="true"`인 상자이고, 화면 읽기용 이름은 `title`이다. `open`이 false면 아무것도 그리지 않는다
 - 삭제 중에는 DeleteTripButton이 `confirmLabel`을 "삭제 중…"으로 바꾸고, 그동안 확인 창의 "삭제"를 다시 눌러도 `onDelete`를 또 부르지 않는다
+- `onDelete`가 끝나면(성공·실패 모두) 확인 창을 닫는다. 삭제 실패 안내와 "다시 시도"는 여행 상세 화면이 보여 준다 (6장, v0.2~)
 - `src/components/DeleteTripButton.tsx`, `src/components/ConfirmDialog.tsx`에서 각각 내보낸다
 
 ### 3-13. StatusMessage — 모든 화면
@@ -623,10 +628,11 @@ function isRealDate(value: string): boolean;
 | `DUPLICATE_DONG_CODE` | 같은 동네를 두 번 고를 수 없어요. | 동네 선택 아래 |
 | `TRIP_NOT_FOUND` | 여행을 찾을 수 없어요. 이미 삭제되었을 수 있어요. | 상세·수정 화면 전체 + "지역 화면으로" 버튼 |
 | `INTERNAL_ERROR` | 잠시 후 다시 시도해 주세요. | 폼 위쪽, 또는 화면 전체 + "다시 시도" 버튼 |
-| (서버에 닿지 못함, v0.2~) | 인터넷 연결을 확인하고 다시 시도해 주세요. | 폼 위쪽, 또는 화면 전체 + "다시 시도" 버튼 |
+| `NETWORK_ERROR` (서버에 닿지 못함, v0.2~) | 인터넷 연결을 확인하고 다시 시도해 주세요. | 폼 위쪽, 또는 화면 전체 + "다시 시도" 버튼 |
 | (모르는 코드) | 문제가 생겼어요. 잠시 후 다시 시도해 주세요. | 폼 위쪽, 또는 화면 전체 |
 
-- "서버에 닿지 못함"과 "모르는 코드"는 API_SPEC의 에러 코드가 아니다. 화면에서만 쓰는 경우다
+- `NETWORK_ERROR`와 "모르는 코드"는 API_SPEC의 에러 코드가 아니다. 화면에서만 쓰는 경우다
+- 저장(폼)이 서버에서 실패하면 TripForm이 에러를 받아 위 자리에 보여 주고, 다시 저장할 수 있게 버튼을 되살린다 (v0.2~)
 
 ## 6. 로딩·빈 목록·에러 문구
 

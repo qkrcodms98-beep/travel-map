@@ -16,7 +16,13 @@ export function DeleteTripButton({ onDelete }: DeleteTripButtonProps) {
     // 지우는 중에는 다시 지우지 않는다
     if (deleting) return;
     setDeleting(true);
-    await onDelete();
+    try {
+      await onDelete();
+    } finally {
+      // 끝나면 창을 닫는다. 실패 안내는 페이지가 보여 준다
+      setDeleting(false);
+      setOpen(false);
+    }
   }
 
   return (

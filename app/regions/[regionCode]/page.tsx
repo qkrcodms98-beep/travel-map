@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
@@ -21,14 +21,23 @@ export default function RegionPage() {
   const regionName = getRegionName(regionCode);
   // 번호를 매기고 최신순으로 줄 세운 목록. 불러오는 중이면 null
   const [trips, setTrips] = useState<TripWithNumber[] | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  const loadTrips = useCallback(() => {
+    if (!regionName) return;
+    setLoadFailed(false);
+    store
+      .listTrips(regionCode)
+      .then((saved) => {
+        // 번호는 오래된 순으로 매기고, 보여 줄 때는 최신순 (맨 위가 가장 큰 번호)
+        setTrips(sortTripsNewestFirst(assignTripNumbers(saved)));
+      })
+      .catch(() => setLoadFailed(true));
+  }, [store, regionCode, regionName]);
 
   useEffect(() => {
-    if (!regionName) return;
-    store.listTrips(regionCode).then((saved) => {
-      // 번호는 오래된 순으로 매기고, 보여 줄 때는 최신순 (맨 위가 가장 큰 번호)
-      setTrips(sortTripsNewestFirst(assignTripNumbers(saved)));
-    });
-  }, [store, regionCode, regionName]);
+    loadTrips();
+  }, [loadTrips]);
 
   if (!regionName) {
     return (
@@ -46,7 +55,10 @@ export default function RegionPage() {
   return (
     <main>
       <PageHeader title={regionName} backHref="/" />
-      {trips === null && <StatusMessage kind="loading" message="여행 목록을 불러오는 중이에요…" />}
+      {trips === null && !loadFailed && <StatusMessage kind="loading" message="여행 목록을 불러오는 중이에요…" />}
+      {loadFailed && (
+        <StatusMessage kind="error" message="여행 목록을 불러오지 못했어요." actionLabel="다시 시도" onAction={loadTrips} />
+      )}
       {trips?.length === 0 && <StatusMessage kind="empty" message="아직 이 지역의 여행 기록이 없어요." />}
       {trips && trips.length > 0 && <TripList trips={trips} regionCode={regionCode} />}
       <Link href={`/regions/${regionCode}/trips/new`} className="m-4 inline-block rounded border px-3 py-1">

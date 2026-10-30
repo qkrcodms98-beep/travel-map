@@ -36,6 +36,7 @@ export default function HomePage() {
   const { viewport, setViewport } = useMapViewport();
   const [map, setMap] = useState<MapState>({ status: "loading" });
   const [trips, setTrips] = useState<Trip[] | null>(null);
+  const [tripsFailed, setTripsFailed] = useState(false);
 
   const loadMap = useCallback(() => {
     setMap({ status: "loading" });
@@ -48,9 +49,18 @@ export default function HomePage() {
     loadMap();
   }, [loadMap]);
 
-  useEffect(() => {
-    store.listTrips().then(setTrips);
+  // 여행 목록. 못 불러오면 지도는 빈 상태로 두고 안내를 보여 준다 (v0.2~)
+  const loadTrips = useCallback(() => {
+    setTripsFailed(false);
+    store
+      .listTrips()
+      .then(setTrips)
+      .catch(() => setTripsFailed(true));
   }, [store]);
+
+  useEffect(() => {
+    loadTrips();
+  }, [loadTrips]);
 
   return (
     <main className="min-h-screen">
@@ -65,6 +75,14 @@ export default function HomePage() {
           onRegionClick={(regionCode) => router.push(`/regions/${regionCode}`)}
           viewport={viewport}
           onViewportChange={setViewport}
+        />
+      )}
+      {tripsFailed && (
+        <StatusMessage
+          kind="error"
+          message="여행 기록을 불러오지 못했어요. 지도는 빈 상태로 보여요."
+          actionLabel="다시 시도"
+          onAction={loadTrips}
         />
       )}
       {trips?.length === 0 && <StatusMessage kind="empty" message="다녀온 지역을 눌러 첫 여행을 기록해 보세요." />}

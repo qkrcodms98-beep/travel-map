@@ -1,9 +1,10 @@
 import type { ReactElement } from "react";
 import { render } from "@testing-library/react";
 import { TripStoreProvider, useTripStore, type TripStore } from "@/components/TripStoreProvider";
+import { createMemoryTripStore } from "@/lib/memoryTripStore";
 import type { Trip } from "@/types/trip";
 
-// 테스트용 화면 틀: 진짜 TripStoreProvider(브라우저 메모리 저장소) 안에 페이지를 그린다
+// 테스트용 화면 틀: 진짜 TripStoreProvider에 브라우저 메모리 저장소를 넣고 그 안에 페이지를 그린다
 // 레이아웃처럼 저장소는 그대로 두고 페이지만 갈아 끼울 수 있어서, 저장·수정·삭제가 다른 화면에 실제로 남는지 볼 수 있다
 export function renderStoreApp() {
   let grabbed: TripStore | null = null;
@@ -15,7 +16,7 @@ export function renderStoreApp() {
   }
 
   const tree = (page?: ReactElement) => (
-    <TripStoreProvider>
+    <TripStoreProvider store={createMemoryTripStore()}>
       <StoreGrabber />
       {page}
     </TripStoreProvider>

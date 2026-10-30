@@ -5,6 +5,7 @@ import { DateFields } from "@/components/DateFields";
 import { DiaryField } from "@/components/DiaryField";
 import { FormError } from "@/components/FormError";
 import { getErrorMessage } from "@/lib/getErrorMessage";
+import { errorCodeOf } from "@/lib/tripStoreError";
 import { getTodayInSeoul } from "@/lib/getTodayInSeoul";
 import { REGION_CODES } from "@/lib/regionCodes";
 import { toTripInput } from "@/lib/toTripInput";
@@ -76,7 +77,13 @@ export function TripForm({ mode, regionCode, initialValue, onSubmit, onCancel }:
     setErrors({});
     setSaving(true);
     const { startDate, endDate, diary, dongCodes } = result.data;
-    await onSubmit({ startDate, endDate, diary, dongCodes });
+    try {
+      await onSubmit({ startDate, endDate, diary, dongCodes });
+    } catch (error) {
+      // 서버가 막았거나 서버에 닿지 못함 (v0.2~). 에러를 보여 주고 다시 저장할 수 있게 한다
+      setErrors(toFormErrors(errorCodeOf(error), input));
+      setSaving(false);
+    }
   }
 
   return (

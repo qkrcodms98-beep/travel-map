@@ -9,3 +9,8 @@ export class TripStoreError extends Error {
     this.code = code;
   }
 }
+
+// 잡은 에러의 코드. TripStoreError가 아니면 "모르는 코드"로 본다 (COMPONENT_SPEC 5장)
+export function errorCodeOf(error: unknown): string {
+  return error instanceof TripStoreError ? error.code : "UNKNOWN";
+}
