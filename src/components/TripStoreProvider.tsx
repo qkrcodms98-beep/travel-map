@@ -3,8 +3,12 @@
 import { createContext, useContext, useMemo, useRef } from "react";
 import { REGION_CODES } from "@/lib/regionCodes";
 import { validateNewTrip, validateTripUpdate } from "@/lib/tripRules";
+import { TripStoreError } from "@/lib/tripStoreError";
 import type { RegionCode } from "@/types/region";
 import type { NewTrip, Trip, TripInput } from "@/types/trip";
+
+// 부품들은 지금처럼 이 파일에서 가져다 쓴다 (COMPONENT_SPEC 3-1)
+export { TripStoreError };
 
 // 여행 기록을 읽고 쓰는 함수 모음 (COMPONENT_SPEC 3-1)
 export interface TripStore {
@@ -12,17 +16,6 @@ export interface TripStore {
   createTrip(input: NewTrip): Promise<Trip>;
   updateTrip(id: string, input: TripInput): Promise<Trip>;
   deleteTrip(id: string): Promise<void>;
-}
-
-// 저장소 함수가 실패하면 던지는 에러. code는 API_SPEC 2장의 에러 코드
-export class TripStoreError extends Error {
-  code: string;
-
-  constructor(code: string) {
-    super(code);
-    this.name = "TripStoreError";
-    this.code = code;
-  }
 }
 
 const TripStoreContext = createContext<TripStore | null>(null);
