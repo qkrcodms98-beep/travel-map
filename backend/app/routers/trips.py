@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from app.deps import get_now, get_region_codes, get_repo
 from app.errors import ApiError
 from app.repository import TripRepository
-from app.rules import check_region_code, validate_new_trip
+from app.rules import check_region_code, validate_new_trip, validate_trip_update
 from app.schemas import TripListResponse, TripOut, TripResponse
 
 # 여행 API 4개 (API_SPEC 3장). 저장소는 Depends(get_repo)로 받은 것만 쓴다
@@ -45,3 +45,16 @@ def list_trips(
 async def create_trip(request: Request, repo: Repo, now: Now, region_codes: RegionCodes) -> TripResponse:
     new_trip = validate_new_trip(await read_json(request), now=now, region_codes=region_codes)
     return TripResponse(trip=TripOut.from_trip(repo.create(new_trip, now)))
+
+
+# 여행 수정 (API_SPEC 3-3). 그 id의 여행이 있는지를 내용 검사보다 먼저 본다 (5장 0단계)
+@router.put("/{trip_id}")
+async def update_trip(trip_id: str, request: Request, repo: Repo, now: Now) -> TripResponse:
+    if repo.get(trip_id) is None:
+        raise ApiError("TRIP_NOT_FOUND")
+    trip_input = validate_trip_update(await read_json(request), now=now)
+    updated = repo.update(trip_id, trip_input, now)
+    # 확인한 사이에 지워졌을 때
+    if updated is None:
+        raise ApiError("TRIP_NOT_FOUND")
+    return TripResponse(trip=TripOut.from_trip(updated))
