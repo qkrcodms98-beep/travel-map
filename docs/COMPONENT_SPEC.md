@@ -423,6 +423,14 @@ interface TripDetailProps {
 | 수정 버튼 | 수정 |
 | 삭제 버튼 | 삭제 |
 
+### 3-11-1. 여행 상세 화면 (TripDetailPage, `app/regions/[regionCode]/trips/[tripId]/page.tsx`) — F-04, F-06
+
+- 브라우저에서 도는 화면이다. 주소의 지역 코드와 여행 id는 `useParams()`로 읽는다
+- 여행은 `useTripStore().listTrips(지역 코드)` → `assignTripNumbers()`로 번호를 매긴 뒤 id로 찾는다 (번호를 매기려면 그 지역의 목록이 필요하다, API_SPEC 1장)
+- 찾지 못하면 6장의 "여행을 찾을 수 없어요…" 문구와 "지역 화면으로" 버튼(`StatusMessage`)을 보여 주고, 누르면 지역 화면으로 이동한다
+- "수정"은 `/regions/[지역 코드]/trips/[여행 id]/edit`로 가는 링크다
+- 삭제: `deleteTrip(여행 id)`가 끝나면 지역 화면으로 이동한다
+
 ### 3-12. DeleteTripButton, ConfirmDialog — F-06
 
 ```ts
