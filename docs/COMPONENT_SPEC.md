@@ -216,6 +216,8 @@ interface PageHeaderProps {
 | 여행 수정 | "여행 수정" | 여행 상세 |
 
 - 뒤로 가기 버튼은 "‹ 뒤로"로 보여 주고, 화면 읽기 프로그램용 이름은 "뒤로 가기"로 한다
+- 뒤로 가기는 `backHref`로 가는 링크(`<a href>`)다. 제목은 `<h1>`이다
+- `src/components/PageHeader.tsx`에서 내보낸다
 
 | 사용자 동작 | 결과 |
 |---|---|
@@ -244,6 +246,18 @@ interface TripListItemProps {
 | "새 여행 기록" 버튼을 누른다 | 새 여행 기록 화면으로 이동한다 |
 
 - 번호 글자는 `formatTripNumber()`로 만든다
+- TripList는 `<ul>`, 여행 한 줄은 `<li>`다. TripListItem은 여행 상세로 가는 링크(`<a href>`) 하나로, 안에 번호와 날짜가 들어 있다
+- 여행 상세 주소는 `/regions/[지역 코드]/trips/[여행 id]`다
+- `src/components/TripList.tsx`, `src/components/TripListItem.tsx`에서 각각 내보낸다
+
+### 3-5-1. 지역 화면 (RegionPage, `app/regions/[regionCode]/page.tsx`) — F-02, F-07
+
+- 브라우저에서 도는 화면이다. 주소의 지역 코드는 `useParams()`로 읽는다
+- 지역 이름은 `src/lib/regionCodes.ts`의 `getRegionName()`으로 찾는다. 이 파일이 `public/data/codes.json`(코드 목록 파일)을 읽는 유일한 곳이고, TripStoreProvider도 여기서 `REGION_CODES`를 가져다 쓴다
+- 코드 목록 파일에 없는 지역이면 여행 목록을 불러오지 않고, 6장의 "지역을 찾을 수 없어요…" 문구와 "지도로 가기" 버튼을 보여 준다. 이 버튼은 `StatusMessage`의 버튼이고, 누르면 `/`로 이동한다
+- 여행 목록은 `useTripStore().listTrips(지역 코드)`로 읽고, `assignTripNumbers()` → `sortTripsNewestFirst()` 순서로 번호를 매기고 줄 세운다
+- "새 여행 기록"은 `/regions/[지역 코드]/trips/new`로 가는 링크다. 여행이 있든 없든 화면에 늘 하나만 있다
+  - 여행이 없을 때는 6장의 "아직 이 지역의 여행 기록이 없어요." 문구만 `StatusMessage`로 보여 주고, 버튼은 따로 만들지 않는다 (위 링크를 쓴다)
 
 ### 3-6. TripForm — F-03, F-05, F-11
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useMemo, useRef } from "react";
-import codes from "../../public/data/codes.json";
+import { REGION_CODES } from "@/lib/regionCodes";
 import { validateNewTrip, validateTripUpdate } from "@/lib/tripRules";
 import type { RegionCode } from "@/types/region";
 import type { NewTrip, Trip, TripInput } from "@/types/trip";
@@ -24,9 +24,6 @@ export class TripStoreError extends Error {
     this.code = code;
   }
 }
-
-// 코드 목록 파일의 시·군·구 코드 (지역 검사용)
-const REGION_CODES: ReadonlySet<RegionCode> = new Set(codes.regions.map((region) => region.code));
 
 const TripStoreContext = createContext<TripStore | null>(null);
 
