@@ -202,6 +202,11 @@ interface CompletionBadgeProps {
   - 100이면 "100%". 100은 **모든 지역을 가 봤을 때만** 나온다 (`calcCompletion`이 정한다)
   - 그 밖에는 소수점 첫째 자리까지 **버림** ("12.39" → "12.3%", "99.96" → "99.9%"). 다 다녀오지 않았는데 반올림으로 "100.0%"가 되는 일을 막는다
 - 누르는 동작은 없다
+- `src/components/CompletionBadge.tsx`에서 내보낸다
+- 첫 화면은 `calcCompletion(방문 횟수가 있는 지역 코드, REGION_AREAS)`로 `percent`를 만든다
+  - 넓이는 `src/lib/regionAreas.ts`가 `public/data/areas.json`(4KB)을 읽어 `REGION_AREAS`로 내보낸다. 넓이 파일을 읽는 유일한 곳이다
+  - 파일이 작아서 `codes.json`처럼 화면 코드에 함께 묶는다 (따로 불러오지 않으므로 불러오는 중·실패 상태가 없다)
+- 여행 목록을 다 불러온 뒤에만 보여 준다. 불러오는 중이거나 실패했을 때는 숨긴다 (실패했는데 "0%"로 보이면 기록이 사라진 것처럼 보이기 때문)
 
 ### 3-4. PageHeader — F-02, F-03, F-04, F-05
 

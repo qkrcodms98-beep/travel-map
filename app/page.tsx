@@ -4,11 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { feature } from "topojson-client";
 import type { GeometryCollection, Topology } from "topojson-specification";
+import { CompletionBadge } from "@/components/CompletionBadge";
 import { MapView, type RegionFeature } from "@/components/MapView";
 import { useMapViewport } from "@/components/MapViewportProvider";
 import { StatusMessage } from "@/components/StatusMessage";
 import { useTripStore } from "@/components/TripStoreProvider";
+import { calcCompletion } from "@/lib/calcCompletion";
 import { countVisits } from "@/lib/countVisits";
+import { REGION_AREAS } from "@/lib/regionAreas";
 import type { RegionCode } from "@/types/region";
 import type { Trip } from "@/types/trip";
 
@@ -62,8 +65,12 @@ export default function HomePage() {
     loadTrips();
   }, [loadTrips]);
 
+  const visitCounts = countVisits(trips ?? []);
+
   return (
     <main className="min-h-screen">
+      {/* 여행 목록을 다 불러온 뒤에만 보여 준다 (COMPONENT_SPEC 3-3) */}
+      {trips && <CompletionBadge percent={calcCompletion(Object.keys(visitCounts), REGION_AREAS)} />}
       {map.status === "loading" && <StatusMessage kind="loading" message="지도를 불러오는 중이에요…" />}
       {map.status === "error" && (
         <StatusMessage kind="error" message="지도를 불러오지 못했어요." actionLabel="다시 시도" onAction={loadMap} />
@@ -71,7 +78,7 @@ export default function HomePage() {
       {map.status === "ready" && (
         <MapView
           regions={map.regions}
-          visitCounts={countVisits(trips ?? [])}
+          visitCounts={visitCounts}
           onRegionClick={(regionCode) => router.push(`/regions/${regionCode}`)}
           viewport={viewport}
           onViewportChange={setViewport}
