@@ -1,7 +1,8 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
+from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 from pydantic.alias_generators import to_camel
 
 
@@ -49,3 +50,43 @@ class Trip(NewTrip):
     id: str
     created_at: datetime  # 기록한 시각. 수정해도 그대로
     updated_at: datetime  # 마지막으로 수정한 시각
+
+
+# 응답 JSON 모양. 파이썬 이름으로 만들고 camelCase로 내보낸다
+class ResponseModel(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, validate_by_name=True, serialize_by_alias=True)
+
+
+# 응답의 여행(Trip) JSON (API_SPEC 2장)
+class TripOut(ResponseModel):
+    id: str
+    region_code: str
+    start_date: str
+    end_date: str | None
+    diary: str
+    dong_codes: list[str]
+    created_at: datetime
+    updated_at: datetime
+
+    # 시각은 UTC, 밀리초 3자리 + Z (예: 2026-05-05T09:12:30.000Z)
+    @field_serializer("created_at", "updated_at")
+    def format_time(self, value: datetime) -> str:
+        return value.astimezone(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
+    @classmethod
+    def from_trip(cls, trip: Trip) -> Self:
+        return cls(
+            id=trip.id,
+            region_code=trip.region_code,
+            start_date=trip.start_date,
+            end_date=trip.end_date,
+            diary=trip.diary,
+            dong_codes=trip.dong_codes,
+            created_at=trip.created_at,
+            updated_at=trip.updated_at,
+        )
+
+
+# { "trip": 여행 }
+class TripResponse(ResponseModel):
+    trip: TripOut
