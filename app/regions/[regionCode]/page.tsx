@@ -54,16 +54,38 @@ export default function RegionPage() {
 
   return (
     <main>
-      <PageHeader title={regionName} backHref="/" />
+      {/* 부제는 여행이 1개 이상일 때만 (COMPONENT_SPEC 3-4) */}
+      <PageHeader title={regionName} backHref="/" subtitle={trips?.length ? `여행 ${trips.length}번` : undefined} />
+      {/* 섹션 줄: 왼쪽 "여행 기록 · 최신순", 오른쪽 "+ 새 여행 기록" (COMPONENT_SPEC 10-5) */}
+      <div className="mt-2 mb-3 flex items-center justify-between gap-2">
+        <h2 className="text-base font-bold">
+          여행 기록 <span className="text-xs font-medium text-muted">최신순</span>
+        </h2>
+        <Link
+          href={`/regions/${regionCode}/trips/new`}
+          className="-mr-2 inline-flex min-h-11 items-center gap-1 px-2 font-semibold text-accent"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          새 여행 기록
+        </Link>
+      </div>
       {trips === null && !loadFailed && <StatusMessage kind="loading" message="여행 목록을 불러오는 중이에요…" />}
       {loadFailed && (
         <StatusMessage kind="error" message="여행 목록을 불러오지 못했어요." actionLabel="다시 시도" onAction={loadTrips} />
       )}
       {trips?.length === 0 && <StatusMessage kind="empty" message="아직 이 지역의 여행 기록이 없어요." />}
       {trips && trips.length > 0 && <TripList trips={trips} regionCode={regionCode} />}
-      <Link href={`/regions/${regionCode}/trips/new`} className="m-4 inline-block rounded border px-3 py-1">
-        새 여행 기록
-      </Link>
     </main>
   );
 }

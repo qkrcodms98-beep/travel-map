@@ -1,4 +1,5 @@
 import { TripListItem } from "@/components/TripListItem";
+import { getDongNames } from "@/lib/dongCodes";
 import type { RegionCode } from "@/types/region";
 import type { TripWithNumber } from "@/types/trip";
 
@@ -10,10 +11,14 @@ interface TripListProps {
 
 export function TripList({ trips, regionCode }: TripListProps) {
   return (
-    <ul>
+    <ul className="flex flex-col gap-3">
       {trips.map((trip) => (
         <li key={trip.id}>
-          <TripListItem trip={trip} href={`/regions/${regionCode}/trips/${trip.id}`} />
+          <TripListItem
+            trip={trip}
+            href={`/regions/${regionCode}/trips/${trip.id}`}
+            dongNames={getDongNames(trip.dongCodes)}
+          />
         </li>
       ))}
     </ul>

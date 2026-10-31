@@ -50,6 +50,12 @@ describe("RegionPage 제목과 목록", () => {
     expect(await screen.findByRole("heading", { name: "테스트시 가구" })).toBeInTheDocument();
   });
 
+  it("UI-104 A에 T1, T2, T3가 있으면 부제 '여행 3번'이 보인다", async () => {
+    mockListTrips.mockResolvedValue([T1, T2, T3]);
+    render(<RegionPage />);
+    expect(await screen.findByText("여행 3번")).toBeInTheDocument();
+  });
+
   it("UI-21 A에 T1, T2, T3가 있으면 위에서부터 세 번째, 두 번째, 첫 번째 여행이다", async () => {
     // 저장소는 순서를 보장하지 않으므로 뒤섞어서 준다
     mockListTrips.mockResolvedValue([T2, T3, T1]);

@@ -10,7 +10,7 @@ const tripLink = () => screen.getByRole("link");
 
 describe("TripListItem", () => {
   it("UI-23 T2(당일치기)는 '두 번째 여행' 아래에 '2026.06.01 (당일치기)'를 보여 준다", () => {
-    render(<TripListItem trip={withNumber(T2, 2)} href="/regions/99010/trips/t2" />);
+    render(<TripListItem trip={withNumber(T2, 2)} href="/regions/99010/trips/t2" dongNames={[]} />);
 
     const number = screen.getByText("두 번째 여행");
     const dates = screen.getByText("2026.06.01 (당일치기)");
@@ -21,13 +21,27 @@ describe("TripListItem", () => {
   });
 
   it("UI-24 T3는 날짜를 '2026.07.01 ~ 07.03'으로 보여 준다", () => {
-    render(<TripListItem trip={withNumber(T3, 3)} href="/regions/99010/trips/t3" />);
+    render(<TripListItem trip={withNumber(T3, 3)} href="/regions/99010/trips/t3" dongNames={[]} />);
     expect(screen.getByText("2026.07.01 ~ 07.03")).toBeInTheDocument();
   });
 
   it("UI-25 여행 하나를 누르면 그 여행의 상세 주소로 이동한다", () => {
-    render(<TripListItem trip={withNumber(T2, 2)} href="/regions/99010/trips/t2" />);
+    render(<TripListItem trip={withNumber(T2, 2)} href="/regions/99010/trips/t2" dongNames={[]} />);
     // 가짜 브라우저는 실제로 주소를 옮기지 않아서, 링크가 가리키는 주소를 확인한다
     expect(tripLink()).toHaveAttribute("href", "/regions/99010/trips/t2");
+  });
+
+  it("UI-105 T3에 동네 '가동', '나동'이면 셋째 줄이 '2박 3일 · 가동, 나동'이다", () => {
+    render(<TripListItem trip={withNumber(T3, 3)} href="/regions/99010/trips/t3" dongNames={["가동", "나동"]} />);
+    const meta = screen.getByText("2박 3일 · 가동, 나동");
+    // 날짜 아래에 있다
+    const dates = screen.getByText("2026.07.01 ~ 07.03");
+    expect(dates.compareDocumentPosition(meta) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("UI-106 T2(당일치기)에 동네가 없으면 셋째 줄이 없다", () => {
+    render(<TripListItem trip={withNumber(T2, 2)} href="/regions/99010/trips/t2" dongNames={[]} />);
+    // 링크 안의 글자는 번호와 날짜뿐이다
+    expect(tripLink()).toHaveTextContent(/^두 번째 여행2026\.06\.01 \(당일치기\)$/);
   });
 });
