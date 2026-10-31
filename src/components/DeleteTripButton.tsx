@@ -27,7 +27,7 @@ export function DeleteTripButton({ onDelete }: DeleteTripButtonProps) {
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)}>
+      <button type="button" onClick={() => setOpen(true)} className="btn-danger w-full">
         삭제
       </button>
       <ConfirmDialog

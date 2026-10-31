@@ -24,23 +24,26 @@ export function ConfirmDialog({
   if (!open) return null;
 
   return (
+    // 뒤 화면을 어둡게. 휴대폰에서는 아래에서 올라오는 카드, 넓은 화면에서는 가운데 카드 (COMPONENT_SPEC 10-5)
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby={`${id}-title`}
-      className="fixed inset-0 grid place-items-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
     >
-      <div className="rounded bg-white p-4">
-        <h2 id={`${id}-title`} className="font-bold">
+      <div className="w-full max-w-[640px] rounded-t-3xl bg-surface p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:mx-4 sm:max-w-sm sm:rounded-3xl sm:pb-5">
+        <h2 id={`${id}-title`} className="text-lg font-bold">
           {title}
         </h2>
-        <p>{message}</p>
-        <button type="button" onClick={onConfirm}>
-          {confirmLabel}
-        </button>
-        <button type="button" onClick={onCancel}>
-          {cancelLabel}
-        </button>
+        <p className="mt-1 text-muted">{message}</p>
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <button type="button" onClick={onCancel} className="btn-secondary">
+            {cancelLabel}
+          </button>
+          <button type="button" onClick={onConfirm} className="btn-danger">
+            {confirmLabel}
+          </button>
+        </div>
       </div>
     </div>
   );

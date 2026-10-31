@@ -106,10 +106,11 @@ describe("RegionPage 상태 문구", () => {
 });
 
 describe("RegionPage 이동", () => {
-  it("UI-30 '‹ 뒤로'는 화면 읽기용 이름이 '뒤로 가기'이고 첫 화면(/)으로 간다", async () => {
+  it("UI-30 뒤로 가기 버튼은 화면 읽기용 이름이 '뒤로 가기'이고 첫 화면(/)으로 간다", async () => {
     render(<RegionPage />);
     const back = await screen.findByRole("link", { name: "뒤로 가기" });
-    expect(back).toHaveTextContent("‹ 뒤로");
+    // v0.5: "‹ 뒤로" 글자 대신 화살표 그림. 그림은 화면 읽기에서 빠진다 (TEST_CASES 1장 예외)
+    expect(back.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
     // 가짜 브라우저는 실제로 주소를 옮기지 않아서, 링크가 가리키는 주소를 확인한다
     expect(back).toHaveAttribute("href", "/");
   });
