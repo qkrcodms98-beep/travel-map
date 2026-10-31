@@ -27,16 +27,20 @@ export function DiaryField({ value, maxLength, onChange }: DiaryFieldProps) {
   }
 
   return (
-    <div>
-      <label htmlFor={id}>여행일기</label>
+    // 카드 "여행일기": 일기 글꼴(고운바탕), 남은 글자 수는 오른쪽 아래 (COMPONENT_SPEC 10-5)
+    <div className="rounded-3xl bg-surface p-5">
+      <label htmlFor={id} className="mb-3 block text-base font-bold">
+        여행일기
+      </label>
       <textarea
         id={id}
         value={value}
         placeholder="이 여행에서 있었던 일을 적어 보세요."
+        className="block min-h-40 w-full resize-y rounded-xl border border-line bg-surface px-3 py-2.5 font-diary text-base leading-[1.7]"
         onChange={(event) => handleChange(event.target.value)}
       />
-      <p>남은 글자 {formatCount(remaining)}자</p>
-      {wasCut && <p>{formatCount(maxLength)}자까지만 쓸 수 있어요.</p>}
+      <p className="mt-1.5 text-right text-[13px] text-muted tabular-nums">남은 글자 {formatCount(remaining)}자</p>
+      {wasCut && <p className="text-right text-[13px] text-danger">{formatCount(maxLength)}자까지만 쓸 수 있어요.</p>}
     </div>
   );
 }

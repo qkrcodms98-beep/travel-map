@@ -17,19 +17,51 @@ export function DongPicker({ options, selected, error, onChange }: DongPickerPro
   }
 
   return (
-    <fieldset aria-describedby="dong-hint dong-error">
-      <legend>다녀온 동네</legend>
-      <p id="dong-hint">여러 곳을 고를 수 있어요.</p>
-      <div className="flex flex-wrap gap-2">
-        {options.map((option) => (
-          <label key={option.code} className="flex items-center gap-1 rounded border px-2 py-1">
-            <input type="checkbox" checked={selected.includes(option.code)} onChange={() => toggle(option.code)} />
-            {option.name}
-          </label>
-        ))}
+    // 카드 "다녀온 동네": 제목 왼쪽, 안내 오른쪽, 그 아래 동네 칩 (COMPONENT_SPEC 10-5)
+    <fieldset aria-describedby="dong-hint dong-error" className="rounded-3xl bg-surface p-5">
+      <legend className="float-left text-base font-bold">다녀온 동네</legend>
+      <p id="dong-hint" className="float-right pt-0.5 text-[13px] text-muted">
+        여러 곳을 고를 수 있어요.
+      </p>
+      <div className="clear-both flex flex-wrap gap-2 pt-3">
+        {options.map((option) => {
+          const checked = selected.includes(option.code);
+          return (
+            // 체크 상자는 그대로 두고(화면 읽기용) 눈에는 칩만 보인다. 고르면 초록 바탕 + ✓
+            <label
+              key={option.code}
+              className={`inline-flex min-h-10 cursor-pointer items-center gap-1 rounded-full border px-3.5 text-sm font-medium has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent ${
+                checked ? "border-accent bg-accent text-white" : "border-line bg-surface text-ink"
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={() => toggle(option.code)}
+                className="sr-only"
+              />
+              {checked && (
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M5 12l5 5 9-10" />
+                </svg>
+              )}
+              {option.name}
+            </label>
+          );
+        })}
       </div>
       {error && (
-        <p id="dong-error" className="text-red-600">
+        <p id="dong-error" className="mt-2 text-[13px] text-danger">
           {error}
         </p>
       )}

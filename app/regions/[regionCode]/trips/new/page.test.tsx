@@ -53,6 +53,13 @@ describe("NewTripPage 화면", () => {
     expect(screen.getByRole("button", { name: "저장" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "취소" })).toBeInTheDocument();
   });
+
+  it("UI-107 부제는 지역 이름 '테스트시 가구'다 (번호는 넣지 않는다)", () => {
+    openNewTripPage();
+    const header = screen.getByRole("banner");
+    expect(within(header).getByText("테스트시 가구")).toBeInTheDocument();
+    expect(header).not.toHaveTextContent("번째 여행");
+  });
 });
 
 describe("NewTripPage 저장", () => {

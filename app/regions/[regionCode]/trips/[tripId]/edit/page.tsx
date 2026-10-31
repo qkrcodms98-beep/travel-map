@@ -7,7 +7,9 @@ import { TripForm } from "@/components/TripForm";
 import { useTripStore } from "@/components/TripStoreProvider";
 import { useDongOptions } from "@/components/useDongOptions";
 import { useRegionTrip } from "@/components/useRegionTrip";
+import { formatTripNumber } from "@/lib/formatTripNumber";
 import { getErrorMessage } from "@/lib/getErrorMessage";
+import { getRegionName } from "@/lib/regionCodes";
 import { toFormValue } from "@/lib/toFormValue";
 import type { TripInput } from "@/types/trip";
 
@@ -50,7 +52,11 @@ export default function EditTripPage() {
 
   return (
     <main>
-      <PageHeader title="여행 수정" backHref={detailHref} />
+      <PageHeader
+        title="여행 수정"
+        backHref={detailHref}
+        subtitle={`${getRegionName(regionCode) ?? ""} · ${formatTripNumber(trip.tripNumber)}`}
+      />
       {/* 종료일 null → "" 로 바꿔 폼에 넣는다 */}
       <TripForm
         mode="edit"

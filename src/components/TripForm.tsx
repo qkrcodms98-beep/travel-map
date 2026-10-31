@@ -102,7 +102,8 @@ export function TripForm({ mode, regionCode, initialValue, dongs, onSubmit, onCa
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
+    // 카드 순서: 날짜 → 동네 → 여행일기 → 버튼 (COMPONENT_SPEC 10-5)
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
       <FormError message={errors.form} />
       <DateFields
         startDate={value.startDate}
@@ -112,7 +113,6 @@ export function TripForm({ mode, regionCode, initialValue, dongs, onSubmit, onCa
         endDateError={errors.endDate}
         onChange={(dates) => setValue({ ...value, ...dates })}
       />
-      <DiaryField value={value.diary} maxLength={DIARY_MAX_CHARS} onChange={(diary) => setValue({ ...value, diary })} />
       {dongs?.status === "loading" && <StatusMessage kind="loading" message="동네 목록을 불러오는 중이에요…" />}
       {dongs?.status === "error" && (
         <StatusMessage
@@ -130,12 +130,16 @@ export function TripForm({ mode, regionCode, initialValue, dongs, onSubmit, onCa
           onChange={(dongCodes) => setValue({ ...value, dongCodes })}
         />
       )}
-      <button type="submit" disabled={saving}>
-        {saving ? "저장 중…" : "저장"}
-      </button>
-      <button type="button" onClick={onCancel}>
-        취소
-      </button>
+      <DiaryField value={value.diary} maxLength={DIARY_MAX_CHARS} onChange={(diary) => setValue({ ...value, diary })} />
+      {/* 화면에 고정하지 않는다 (휴대폰 키보드가 올라와도 가리지 않게) */}
+      <div className="mt-2 flex flex-col gap-2">
+        <button type="submit" disabled={saving} className="btn-primary w-full">
+          {saving ? "저장 중…" : "저장"}
+        </button>
+        <button type="button" onClick={onCancel} className="btn-secondary w-full">
+          취소
+        </button>
+      </div>
     </form>
   );
 }

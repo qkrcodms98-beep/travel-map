@@ -55,6 +55,11 @@ describe("EditTripPage 보기", () => {
     expect(screen.getByLabelText("종료일")).toHaveValue("");
     expect(screen.queryByLabelText(/지역/)).not.toBeInTheDocument();
   });
+
+  it("UI-107 T2를 열면 부제가 '테스트시 가구 · 두 번째 여행'이다", async () => {
+    await openEdit(1);
+    expect(within(screen.getByRole("banner")).getByText("테스트시 가구 · 두 번째 여행")).toBeInTheDocument();
+  });
 });
 
 describe("EditTripPage 저장", () => {

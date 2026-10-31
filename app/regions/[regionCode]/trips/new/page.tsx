@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { TripForm } from "@/components/TripForm";
 import { useTripStore } from "@/components/TripStoreProvider";
 import { useDongOptions } from "@/components/useDongOptions";
+import { getRegionName } from "@/lib/regionCodes";
 import type { TripInput } from "@/types/trip";
 
 // 새 여행 기록 화면 (COMPONENT_SPEC 3-6-1)
@@ -22,7 +23,8 @@ export default function NewTripPage() {
 
   return (
     <main>
-      <PageHeader title="새 여행 기록" backHref={regionHref} />
+      {/* 부제는 지역 이름만. 번호는 시작일로 정해져서 아직 알 수 없다 (COMPONENT_SPEC 3-4) */}
+      <PageHeader title="새 여행 기록" backHref={regionHref} subtitle={getRegionName(regionCode)} />
       <TripForm
         mode="create"
         regionCode={regionCode}
