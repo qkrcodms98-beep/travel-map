@@ -58,6 +58,14 @@ describe("HomePage 서버 에러 (v0.2)", () => {
     expect(screen.queryByText("다녀온 지역을 눌러 첫 여행을 기록해 보세요.")).not.toBeInTheDocument();
   });
 
+  it("UI-103 여행 목록을 못 불러오면 숫자 카드가 없다", async () => {
+    mockListTrips.mockRejectedValue(new TripStoreError("INTERNAL_ERROR"));
+    renderHome();
+
+    expect(await screen.findByText(LOAD_ERROR)).toBeInTheDocument();
+    expect(screen.queryByText("다녀온 시·군·구")).not.toBeInTheDocument();
+  });
+
   it("UI-15 서버에 닿지 못해도 같은 안내가 보인다", async () => {
     mockListTrips.mockRejectedValue(new TripStoreError("NETWORK_ERROR"));
     renderHome();

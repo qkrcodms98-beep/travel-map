@@ -58,6 +58,13 @@ describe("MapView 그리기와 색칠", () => {
     expect(regionB()).not.toHaveAttribute("fill", "url(#terrain-pattern)");
     expect(document.querySelector("pattern#terrain-pattern")).toBeInTheDocument();
   });
+
+  it("UI-100 범례 '아직', '1번', '2번 이상'이 보인다", () => {
+    renderMap();
+    expect(screen.getByText("아직")).toBeInTheDocument();
+    expect(screen.getByText("1번")).toBeInTheDocument();
+    expect(screen.getByText("2번 이상")).toBeInTheDocument();
+  });
 });
 
 describe("MapView 누르기와 확대·이동", () => {

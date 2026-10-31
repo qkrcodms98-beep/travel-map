@@ -120,6 +120,7 @@ interface MapViewProps {
   onRegionClick: (regionCode: RegionCode) => void;
   viewport: MapViewport | null;                   // 기억해 둔 확대 상태·위치. null이면 전국이 보이게
   onViewportChange: (viewport: MapViewport) => void;
+  sidoBorders?: GeoJSON.MultiLineString;          // (v0.5) 시·도 경계선. 첫 화면이 지도 파일에서 topojson mesh로 만든다 (10-6)
 }
 
 interface MapViewport {
@@ -166,6 +167,7 @@ interface RegionFeature {
 - 무늬는 **전국 지도 크기의 그림 한 장**이다. `patternUnits="userSpaceOnUse"`로 지도 판(600×800)과 같은 자리에 깔아서, 각 지역에는 실제 그 자리의 지형이 보인다 (강원도에는 태백산맥, 제주에는 한라산). 확대하면 `<g>`와 함께 커진다
 - 그림은 브라우저에서 처음 그릴 때 캔버스(`<canvas>`)에 한 번 그리고, 그 결과(PNG 글자)를 무늬 안 `<image>`로 넣는다. 캔버스를 쓸 수 없는 곳(테스트용 가짜 브라우저)에서는 그림 없이 진한 초록 바탕만 보인다
 - 그림 크기는 지도 판의 2배(1200×1600)다. 더 크면 처음 그릴 때 느려진다
+- (v0.5) 범례의 "2번 이상" 견본에도 이 그림을 쓰므로, 2번 이상 간 지역이 없어도 그림을 그린다. 범례는 MapView가 지도 왼쪽 아래에 그린다 (10-5)
 - 지형 계산은 `src/lib/terrain.ts`의 순수 함수로 둔다 (4장). 무작위 값을 쓰지 않으므로 **같은 좌표면 늘 같은 무늬**다
   - 높이 = 실제 산맥 자리(태백·소백·차령·노령산맥, 광주산맥, 한라산, 울릉도 성인봉 등을 경도·위도 선과 점으로 적음) + 노이즈(울퉁불퉁함)
   - 색 = 높이별 색(낮은 곳 논밭 연두·갈색, 산 짙은 초록, 높은 능선 갈색) × 북서쪽에서 빛을 비춘 그림자

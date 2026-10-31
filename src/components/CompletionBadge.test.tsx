@@ -18,4 +18,9 @@ describe("CompletionBadge", () => {
     render(<CompletionBadge percent={percentOf([])} />);
     expect(screen.getByText("지도 완성도 0%")).toBeInTheDocument();
   });
+
+  it("UI-101 A에 여행 1개면 이름이 '지도 완성도'인 진행 막대가 25를 가리킨다", () => {
+    render(<CompletionBadge percent={percentOf([T1])} />);
+    expect(screen.getByRole("progressbar", { name: "지도 완성도" })).toHaveAttribute("aria-valuenow", "25");
+  });
 });

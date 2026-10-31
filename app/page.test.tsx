@@ -5,7 +5,12 @@ import { MapViewportProvider } from "@/components/MapViewportProvider";
 import type { TripStore } from "@/components/TripStoreProvider";
 import type { Trip } from "@/types/trip";
 import { FAKE_REGIONS_TOPOLOGY } from "../tests/fixtures/map";
-import { T1 } from "../tests/fixtures/trips";
+import { B1, T1, T2 } from "../tests/fixtures/trips";
+
+// 진짜 코드 목록 파일 대신 가짜 코드 목록 (지역 A, B 두 개). 숫자 카드의 전체 지역 수가 2가 된다
+jest.mock("../public/data/codes.json", () =>
+  jest.requireActual<typeof import("../tests/fixtures/codes")>("../tests/fixtures/codes").FAKE_CODES,
+);
 
 // 가짜 저장소: 어떤 여행 목록을 돌려줄지 테스트마다 정한다
 const mockListTrips = jest.fn<Promise<Trip[]>, [string?]>();
@@ -133,5 +138,29 @@ describe("HomePage 상태 문구", () => {
     const region = await regionA();
     await waitFor(() => expect(region).toHaveAttribute("data-color-stage", "once"));
     expect(screen.queryByText("다녀온 지역을 눌러 첫 여행을 기록해 보세요.")).not.toBeInTheDocument();
+  });
+});
+
+// 숫자 카드: 이름 글자가 들어 있는 카드 전체
+const statCard = (label: string) => screen.getByText(label).closest("div");
+
+describe("HomePage 숫자 카드 (v0.5)", () => {
+  it("UI-102 T1, T2, B1이면 다녀온 시·군·구 '2 / 2', 여행 '3번'", async () => {
+    mockListTrips.mockResolvedValue([T1, T2, B1]);
+    renderHome();
+
+    expect(await screen.findByText("다녀온 시·군·구")).toBeInTheDocument();
+    expect(statCard("다녀온 시·군·구")).toHaveTextContent("2 / 2");
+    expect(statCard("여행")).toHaveTextContent("3번");
+  });
+
+  it("UI-103 여행 목록을 불러오는 중이면 숫자 카드가 없다", async () => {
+    // 끝나지 않는 여행 목록
+    mockListTrips.mockReturnValue(new Promise<Trip[]>(() => {}));
+    renderHome();
+
+    await regionA();
+    expect(screen.queryByText("다녀온 시·군·구")).not.toBeInTheDocument();
+    expect(screen.queryByText("여행")).not.toBeInTheDocument();
   });
 });

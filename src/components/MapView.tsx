@@ -11,7 +11,7 @@ import {
   type D3ZoomEvent,
   type ZoomTransform,
 } from "d3";
-import type { Geometry } from "geojson";
+import type { Geometry, MultiLineString } from "geojson";
 import { getColorStage, type ColorStage } from "@/lib/getColorStage";
 import { useTerrainImage } from "@/components/useTerrainImage";
 import type { RegionCode } from "@/types/region";
@@ -35,6 +35,7 @@ export interface MapViewProps {
   onRegionClick: (regionCode: RegionCode) => void;
   viewport: MapViewport | null; // null이면 전국이 보이게
   onViewportChange: (viewport: MapViewport) => void;
+  sidoBorders?: MultiLineString; // 시·도 경계선 (v0.5). 앞 두 자리가 다른 이웃 지역 사이의 선
 }
 
 // 지도를 그리는 판의 크기 (화면에서는 가로 폭에 맞춰 늘고 준다)
@@ -45,12 +46,21 @@ const MAX_SCALE = 40;
 // 마우스가 이만큼(px) 넘게 움직이면 누르기가 아니라 끌기로 본다
 const DRAG_THRESHOLD = 3;
 
-// 색칠 단계별 색: 흰색 / 연두색 / 진한 초록 (진한 초록은 지형 무늬 그림이 다 그려지기 전의 바탕)
+// 색칠 단계별 색: 흰색 / 연두색 / 초록 (초록은 지형 무늬 그림이 다 그려지기 전의 바탕). 값은 globals.css와 같다 (COMPONENT_SPEC 10-2)
 const FILL: Record<ColorStage, string> = {
-  none: "#ffffff",
-  once: "#b7e4a0",
-  many: "#2d6a4f",
+  none: "#ffffff", // surface
+  once: "#dce8b8", // visit-once
+  many: "#6e8b4a", // terrain-base
 };
+const LAND_EDGE = "#cbd3da";
+const SIDO_EDGE = "#8e9aa6";
+
+// 범례 (COMPONENT_SPEC 10-5)
+const LEGEND: { stage: ColorStage; label: string }[] = [
+  { stage: "none", label: "아직" },
+  { stage: "once", label: "1번" },
+  { stage: "many", label: "2번 이상" },
+];
 
 // 지형 무늬 이름 (2번 이상 간 지역의 fill)
 const TERRAIN_PATTERN_ID = "terrain-pattern";
@@ -68,12 +78,19 @@ function isSameTransform(a: ZoomTransform, b: ZoomTransform): boolean {
   return a.k === b.k && a.x === b.x && a.y === b.y;
 }
 
-export function MapView({ regions, visitCounts, onRegionClick, viewport, onViewportChange }: MapViewProps) {
+export function MapView({
+  regions,
+  visitCounts,
+  onRegionClick,
+  viewport,
+  onViewportChange,
+  sidoBorders,
+}: MapViewProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [transform, setTransform] = useState(() => toTransform(viewport));
 
   // ---- 그리기: d3로 지역 모양 → path 글자 (전국이 판에 꽉 차게 맞춘다) ----
-  const { projection, drawnRegions, paths } = useMemo(() => {
+  const { projection, drawnRegions, paths, sidoPath } = useMemo(() => {
     const collection = {
       type: "FeatureCollection" as const,
       features: regions.map((region) => ({ type: "Feature" as const, properties: {}, geometry: region.geometry })),
@@ -81,12 +98,12 @@ export function MapView({ regions, visitCounts, onRegionClick, viewport, onViewp
     const projection = geoMercator().fitSize([WIDTH, HEIGHT], collection);
     const toPath = geoPath(projection);
     const drawnRegions = regions.map((region) => ({ ...region, d: toPath(region.geometry) ?? "" }));
-    return { projection, drawnRegions, paths: drawnRegions.map((region) => region.d) };
-  }, [regions]);
+    const sidoPath = sidoBorders ? (toPath(sidoBorders) ?? "") : "";
+    return { projection, drawnRegions, paths: drawnRegions.map((region) => region.d), sidoPath };
+  }, [regions, sidoBorders]);
 
-  // ---- 지형 무늬: 2번 이상 간 지역이 있을 때만 그림을 그린다 (F-12) ----
-  const hasMany = regions.some((region) => getColorStage(visitCounts[region.code] ?? 0) === "many");
-  const terrainImage = useTerrainImage({ width: WIDTH, height: HEIGHT, projection, paths }, hasMany);
+  // ---- 지형 무늬 (F-12): 범례 견본에도 쓰므로 늘 그린다. 한 번 그리면 기억해 둔다 ----
+  const terrainImage = useTerrainImage({ width: WIDTH, height: HEIGHT, projection, paths }, true);
 
   // ---- 확대·이동: 계산은 d3가 한다 ----
 
@@ -203,46 +220,78 @@ export function MapView({ regions, visitCounts, onRegionClick, viewport, onViewp
   }
 
   return (
-    <svg
-      ref={svgRef}
-      viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-      className="h-auto w-full touch-none"
-      onPointerDownCapture={handlePointerDownCapture}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerEnd}
-      onPointerCancel={handlePointerEnd}
-      onClick={handleMapClick}
-    >
-      <defs>
-        {/* 전국 크기의 지형 그림 한 장을 지도 판과 같은 자리에 깐다. 각 지역에는 그 자리의 지형이 보인다 */}
-        <pattern id={TERRAIN_PATTERN_ID} patternUnits="userSpaceOnUse" x={0} y={0} width={WIDTH} height={HEIGHT}>
-          <rect width={WIDTH} height={HEIGHT} fill={FILL.many} />
-          {terrainImage && <image href={terrainImage} width={WIDTH} height={HEIGHT} />}
-        </pattern>
-      </defs>
-      <g transform={transform.toString()}>
-        {drawnRegions.map((region) => {
-          const stage = getColorStage(visitCounts[region.code] ?? 0);
-          return (
+    <div className="relative">
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        className="block h-auto w-full touch-none"
+        onPointerDownCapture={handlePointerDownCapture}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerEnd}
+        onPointerCancel={handlePointerEnd}
+        onClick={handleMapClick}
+      >
+        <defs>
+          {/* 전국 크기의 지형 그림 한 장을 지도 판과 같은 자리에 깐다. 각 지역에는 그 자리의 지형이 보인다 */}
+          <pattern id={TERRAIN_PATTERN_ID} patternUnits="userSpaceOnUse" x={0} y={0} width={WIDTH} height={HEIGHT}>
+            <rect width={WIDTH} height={HEIGHT} fill={FILL.many} />
+            {terrainImage && <image href={terrainImage} width={WIDTH} height={HEIGHT} />}
+          </pattern>
+        </defs>
+        <g transform={transform.toString()}>
+          {drawnRegions.map((region) => {
+            const stage = getColorStage(visitCounts[region.code] ?? 0);
+            return (
+              <path
+                key={region.code}
+                d={region.d}
+                role="button"
+                tabIndex={0}
+                aria-label={region.name}
+                data-color-stage={stage}
+                fill={stage === "many" ? `url(#${TERRAIN_PATTERN_ID})` : FILL[stage]}
+                stroke={LAND_EDGE}
+                strokeWidth={0.6}
+                vectorEffect="non-scaling-stroke"
+                className="cursor-pointer outline-none focus-visible:stroke-ink focus-visible:[stroke-width:2]"
+                onPointerDown={() => handleRegionPointerDown(region.code)}
+                onKeyDown={(event) => handleRegionKeyDown(event, region.code)}
+              />
+            );
+          })}
+          {/* 시·도 경계선은 지역 위에 한 겹 더. 눌리지 않는다 */}
+          {sidoPath && (
             <path
-              key={region.code}
-              d={region.d}
-              role="button"
-              tabIndex={0}
-              aria-label={region.name}
-              data-color-stage={stage}
-              fill={stage === "many" ? `url(#${TERRAIN_PATTERN_ID})` : FILL[stage]}
-              stroke="#6b7280"
-              strokeWidth={0.5}
+              d={sidoPath}
+              fill="none"
+              stroke={SIDO_EDGE}
+              strokeWidth={1}
               vectorEffect="non-scaling-stroke"
-              className="cursor-pointer outline-none focus-visible:stroke-black focus-visible:[stroke-width:2]"
-              onPointerDown={() => handleRegionPointerDown(region.code)}
-              onKeyDown={(event) => handleRegionKeyDown(event, region.code)}
+              pointerEvents="none"
+              aria-hidden="true"
             />
-          );
-        })}
-      </g>
-    </svg>
+          )}
+        </g>
+      </svg>
+      {/* 범례: 왼쪽 아래. "2번 이상" 견본은 지형 그림의 숲 부분을 보여 준다 */}
+      <ul className="pointer-events-none absolute bottom-3 left-3 flex gap-3 rounded-xl bg-surface px-3 py-2 text-xs text-muted shadow-[0_8px_24px_rgba(24,33,43,0.08)]">
+        {LEGEND.map(({ stage, label }) => (
+          <li key={stage} className="flex items-center gap-1.5">
+            <span
+              aria-hidden="true"
+              className="inline-block size-3 rounded-[3px] border border-land-edge"
+              style={{
+                backgroundColor: FILL[stage],
+                backgroundImage: stage === "many" && terrainImage ? `url(${terrainImage})` : undefined,
+                backgroundSize: "400%",
+                backgroundPosition: "70% 30%",
+              }}
+            />
+            {label}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
