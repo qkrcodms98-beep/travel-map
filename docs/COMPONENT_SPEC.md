@@ -216,6 +216,7 @@ interface CompletionBadgeProps {
   - 넓이는 `src/lib/regionAreas.ts`가 `public/data/areas.json`(4KB)을 읽어 `REGION_AREAS`로 내보낸다. 넓이 파일을 읽는 유일한 곳이다
   - 파일이 작아서 `codes.json`처럼 화면 코드에 함께 묶는다 (따로 불러오지 않으므로 불러오는 중·실패 상태가 없다)
 - 여행 목록을 다 불러온 뒤에만 보여 준다. 불러오는 중이거나 실패했을 때는 숨긴다 (실패했는데 "0%"로 보이면 기록이 사라진 것처럼 보이기 때문)
+- (v0.5) 카드 모양으로 바꾸고 진행 막대를 붙인다. 막대는 `role="progressbar"`, 화면 읽기용 이름은 "지도 완성도", `aria-valuenow`는 `percent`(0~100)다. 글자는 지금처럼 한 요소 안에 "지도 완성도 12.3%"로 두고 크기만 다르게 한다 (이름은 작게, 숫자는 크게). 모양은 10장
 
 ### 3-4. PageHeader — F-02, F-03, F-04, F-05
 
@@ -223,6 +224,7 @@ interface CompletionBadgeProps {
 interface PageHeaderProps {
   title: string;     // 아래 표
   backHref: string;  // 뒤로 가기 버튼이 갈 주소
+  subtitle?: string; // (v0.5) 제목 아래 작은 글씨. 아래 표
 }
 ```
 
@@ -234,6 +236,15 @@ interface PageHeaderProps {
 | 여행 수정 | "여행 수정" | 여행 상세 |
 
 - 뒤로 가기 버튼은 "‹ 뒤로"로 보여 주고, 화면 읽기 프로그램용 이름은 "뒤로 가기"로 한다
+  - (v0.5) "‹ 뒤로" 글자 대신 44px 동그란 버튼 안의 화살표 그림으로 바꾼다. 그림은 `aria-hidden`이고, 화면 읽기용 이름은 "뒤로 가기" 그대로다
+
+| 화면 (v0.5) | 부제 (`subtitle`) |
+|---|---|
+| 지역 화면 | "여행 3번" (여행이 1개 이상일 때만) |
+| 새 여행 기록 | 지역 이름 (번호는 시작일로 정해져서 고르기 전에는 알 수 없으므로 넣지 않는다) |
+| 여행 상세 | 지역 이름 |
+| 여행 수정 | "지역 이름 · 두 번째 여행" |
+
 - 뒤로 가기는 `backHref`로 가는 링크(`<a href>`)다. 제목은 `<h1>`이다
 - `src/components/PageHeader.tsx`에서 내보낸다
 
@@ -254,6 +265,7 @@ interface TripListProps {
 interface TripListItemProps {
   trip: TripWithNumber;
   href: string; // 여행 상세 주소
+  dongNames: string[]; // (v0.5) 다녀온 동네 이름. TripList가 getDongNames()로 만든다
 }
 ```
 
@@ -264,6 +276,7 @@ interface TripListItemProps {
 | "새 여행 기록" 버튼을 누른다 | 새 여행 기록 화면으로 이동한다 |
 
 - 번호 글자는 `formatTripNumber()`로 만든다
+- (v0.5) 셋째 줄에 기간과 동네를 보여 준다 ("2박 3일 · 황남동, 보덕동"). 10-5를 따른다
 - TripList는 `<ul>`, 여행 한 줄은 `<li>`다. TripListItem은 여행 상세로 가는 링크(`<a href>`) 하나로, 안에 번호와 날짜가 들어 있다
 - 여행 상세 주소는 `/regions/[지역 코드]/trips/[여행 id]`다
 - `src/components/TripList.tsx`, `src/components/TripListItem.tsx`에서 각각 내보낸다
@@ -595,6 +608,12 @@ function formatPercent(percent: number): string;
 // 종료일이 시작일과 같음:  "2026.05.03 (당일치기)"
 function formatTripDates(startDate: DateString, endDate: DateString | null): string;
 
+// 여행 기간 (v0.5): 종료일이 없거나 시작일과 같으면 null (날짜 글자에 이미 "당일치기"가 있다). 그 밖에는 "2박 3일"
+function formatTripLength(startDate: DateString, endDate: DateString | null): string | null;
+
+// 동네 요약 (v0.5): [] → null, 3곳까지 "가동, 나동, 다동", 4곳 이상 "가동, 나동, 다동 외 2곳"
+function formatDongSummary(dongNames: string[]): string | null;
+
 // 폼 값 → 저장할 값. 종료일 "" → null (3-6)
 function toTripInput(value: TripFormValue): TripInput;
 
@@ -659,6 +678,8 @@ function isRealDate(value: string): boolean;
 | `formatTripNumber` | TripListItem, TripDetail | F-02, F-04 | v0.1 |
 | `formatPercent` | CompletionBadge | F-13 | v0.4 |
 | `formatTripDates` | TripListItem, TripDetail | F-02, F-04 | v0.1 |
+| `formatTripLength` | TripListItem, TripDetail | F-17 | v0.5 |
+| `formatDongSummary` | TripListItem | F-17 | v0.5 |
 | `toTripInput` | TripForm | F-03, F-05 | v0.1 |
 | `toFormValue` | EditTripPage | F-05 | v0.1 |
 | `getTodayInSeoul` | DateFields, Zod 규칙 | F-03, F-05 | v0.1 |
@@ -752,9 +773,140 @@ function isRealDate(value: string): boolean;
 | F-14 배포 | (부품 없음) | v1.0 |
 | F-15 휴대폰 홈 화면 설치 | (부품 없음. 앱 설치 설정 파일로 처리) | v1.0 |
 | F-16 지도 확대·이동 | MapView, MapViewportProvider | v0.1 |
+| F-17 화면 디자인 | 모든 페이지와 부품, `app/globals.css`, `formatTripLength`, `formatDongSummary` (10장) | v0.5 |
 
 ## 9. 정한 것
 
 - 지역 이름: 코드 목록 파일에 함께 넣는다. TRD 6장을 "코드와 이름"으로 맞췄다 (3-4)
 - 여행 번호 표기: "열 번째 여행"까지는 한글, 11번째부터는 "11번째 여행"으로 쓴다 (4장 `formatTripNumber`)
 - 지도 확대 상태: 첫 화면으로 돌아오면 그대로 두고, 새로고침하면 처음으로 돌아간다 (3-2, 3-2-1)
+
+## 10. 화면 디자인 (v0.5) — F-17
+
+> 기준: `docs/design/여행 지도 앱 디자인 시안.pdf`(시안), `docs/design/나의 여행 지도.html`(맛보기). 둘이 다르면 IDEA.md 규칙에 맞는 쪽을 따른다.
+
+### 10-1. 빼는 것
+
+| 시안에 있는 것 | 빼는 이유 |
+|---|---|
+| 사진 (사진 수, 미리보기, 사진 칸, 대표 사진, 크게 보기) | v1.2 |
+| "색으로/사진으로" 전환 | 사진 기능이 있어야 쓸모가 있다 |
+| 검색 (돋보기, 지역 이름으로 찾기) | IDEA "지금은 빼는 것" |
+| 첫 화면 아래 지역 미리보기 창 ("기록 보기") | 지역을 누르면 바로 지역 화면으로 가는 지금 동작(F-02)이 바뀐다 |
+| 떠 있는 + 버튼 | 어느 지역에 기록할지 고르는 새 흐름이 필요하다 |
+| 지역 화면의 동네 지도, 날짜별 보기 (전체/2026.03) | 명세에 없는 새 기능 |
+| 동네를 지도에서 고르기, "+18곳 더" 접기 | 동네는 칩 목록으로만 고르고, 모두 보여 준다 |
+| 확대 버튼(+/−/전국), 마우스를 올리면 뜨는 지역 이름 | 확대는 손가락과 휠로 이미 된다 (F-16) |
+| 예시 기록, "이 브라우저에만 저장" 안내, 넓은 화면 2단 배치 | 맛보기 버전에서만 쓰는 것 |
+| 시안 PDF의 빨강 계열 색칠 | IDEA 색칠 규칙과 다르다. 맛보기의 초록 계열을 쓴다 |
+| 시안의 문구 ("기록 저장하기", "–", "나의 여행 지도" 등) | 5·6장의 문구를 그대로 쓴다 (10-7) |
+| 여행 상세의 연필 버튼 | 아래쪽 "수정"·"삭제" 버튼을 쓴다 (맛보기 방식. 시안에는 삭제 버튼이 없다) |
+
+### 10-2. 색
+
+밝은 화면 하나만 만든다. 다크 모드는 없다.
+
+`app/globals.css`의 `:root`에 이름을 붙여 두고 Tailwind에서 꺼내 쓴다 (예: `bg-surface`, `text-muted`). `color-scheme: light`로 둔다.
+
+| 이름 | 값 | 쓰는 곳 |
+|---|---|---|
+| bg | #F3F5F7 | 화면 바탕 |
+| surface | #FFFFFF | 카드, 아직 안 간 지역 |
+| ink | #18212B | 글자, 기본 버튼 바탕 |
+| muted | #5B6672 | 보조 글자 |
+| line | #E2E6EA | 테두리, 구분선 |
+| sea | #DCE6EE | 지도 바탕(바다) |
+| land-edge | #CBD3DA | 시·군·구 경계선 |
+| sido-edge | #8E9AA6 | 시·도 경계선 |
+| visit-once | #DCE8B8 | 1번 간 지역 (연두색) |
+| terrain-base | #6E8B4A | 지형 무늬 그림이 그려지기 전 바탕 |
+| accent | #4E7D3A | 고른 칩, 완성도 막대, 포커스 테두리 |
+| accent-ink | #3B6A2A | 여행 번호 글자 |
+| accent-soft | #E5EFD8 | 상세 화면 동네 칩 바탕 |
+| danger | #B42318 | 에러 글자, 삭제 버튼 |
+
+### 10-3. 글꼴과 크기
+
+- 화면 글자는 IBM Plex Sans KR(굵기 400/500/600/700)을 쓴다. 불러오지 못하면 Apple SD Gothic Neo나 Malgun Gothic으로 보인다
+- 여행일기(입력 칸과 상세)는 고운바탕(Gowun Batang)을 쓴다. 일기장 느낌을 내기 위해서다 (Tailwind `font-diary`)
+- 둘 다 `next/font/google`로 불러온다 (TRD 2장)
+
+| 곳 | 크기 | 굵기 |
+|---|---|---|
+| 첫 화면 제목 | 28px | 굵게 |
+| 화면 제목 (PageHeader) | 22px | 굵게 |
+| 카드 제목 | 16px | 굵게 |
+| 여행 날짜 | 목록 18px, 상세 26px | 굵게, 숫자 폭 고정 |
+| 본문 | 15px | 보통 |
+| 보조 글자 | 13px | 보통 |
+| 여행일기 | 입력 16px(줄 간격 1.7), 상세 17px(줄 간격 1.8) | 보통 |
+
+### 10-4. 공통 모양
+
+- 본문 폭은 최대 640px이고 가운데에 둔다. 양옆 여백은 16px이다
+- 안전 영역: `viewport-fit=cover`로 화면 끝까지 쓰고, 위·아래·양옆에 `env(safe-area-inset-*)`만큼 여백을 더한다
+- 카드: 흰 바탕, 그림자 없음. 큰 카드는 모서리 24px·안쪽 여백 20px, 여행 카드는 모서리 18px·안쪽 여백 16px
+- 누르는 곳은 모두 44px 이상이다
+- 버튼은 세 가지다 (`globals.css`의 `btn-primary`, `btn-secondary`, `btn-danger`)
+
+| 종류 | 모양 | 쓰는 곳 |
+|---|---|---|
+| 기본 | ink 바탕, 흰 글자, 높이 52px, 모서리 16px | 저장 |
+| 보조 | 투명 바탕, line 테두리 | 취소, 수정, 다시 시도 |
+| 위험 | 투명 바탕, danger 글자, line 테두리 | 삭제 |
+
+- 칩: 높이 40px, 모서리를 끝까지 둥글게. 고르면 accent 바탕에 흰 글자와 ✓
+- 입력 칸: 높이 48px, 모서리 12px, line 테두리
+- 키보드로 옮겨 간 곳에는 accent 색 2px 테두리를 보여 준다
+- 기기에서 "동작 줄이기"를 켜 두었으면 움직임 효과를 끈다
+
+### 10-5. 화면별 배치
+
+**첫 화면** (위에서부터)
+1. 제목 "나만의 여행 지도" (`<h1>`)
+2. 숫자 카드: 첫 줄에 "다녀온 시·군·구 `6 / 전체 수`"와 "여행 `9번`"을 나란히, 둘째 줄에 지도 완성도 카드(3-3)를 가로로 꽉 차게 막대와 함께 둔다. 여행 목록을 다 불러온 뒤에만 보여 준다 (3-3과 같은 이유)
+   - 다녀온 시·군·구 = `countVisits()` 결과의 지역 수, 전체 수 = `REGION_CODES`의 개수
+   - 여행 = 여행 목록의 개수
+3. 지도 카드: 바다색 둥근 상자(가로:세로 = 3:4). 왼쪽 아래에 범례 "아직 / 1번 / 2번 이상"을 둔다. "2번 이상" 견본은 지형 무늬 그림으로 보여 준다. 불러오는 중 문구는 상자 가운데에 보여 준다
+4. 안내·에러 문구, 그 아래 출처
+
+**지역 화면**
+1. PageHeader (부제 "여행 3번")
+2. 섹션 줄: 왼쪽에 "여행 기록"과 작은 글씨 "최신순", 오른쪽에 "+ 새 여행 기록" 링크 (accent 글자, + 그림은 `aria-hidden`. 링크 이름은 "새 여행 기록" 그대로)
+3. 여행 카드 목록. 여행이 없으면 점선 상자 안에 "아직 이 지역의 여행 기록이 없어요."
+
+**여행 카드 (TripListItem)**
+- 첫 줄: "두 번째 여행"(13px, accent-ink), 오른쪽에 › 그림
+- 둘째 줄: "2026.03.03 ~ 03.05"(18px, 굵게)
+- 셋째 줄: "2박 3일 · 황남동, 보덕동"(13px, muted). `formatTripLength`와 `formatDongSummary`로 만든다. 둘 중 없는 것은 빼고, 둘 다 없으면 셋째 줄이 없다
+- 카드 전체가 링크다
+
+**새 여행 기록 · 여행 수정**
+1. PageHeader (부제는 3-4 표)
+2. 폼 위쪽 에러(FormError): 빨간 테두리 상자
+3. 카드 "언제 다녀왔어요?": 시작일·종료일 두 칸을 나란히 둔다 (360px에서도 나란히). 종료일 안내는 그 아래
+4. 카드 "다녀온 동네" (legend가 카드 제목): 동네 칩. 체크 상자는 그대로 두고 모양만 칩으로 바꾼다. 안내 "여러 곳을 고를 수 있어요."는 제목 오른쪽에 작게
+5. 카드 "여행일기": 고운바탕, 최소 높이 160px. 남은 글자 수는 오른쪽 아래
+6. 맨 아래에 "저장"(기본, 가로 꽉), 그 아래 "취소"(보조, 가로 꽉). 화면에 고정하지 않는다 (휴대폰 키보드가 올라와도 가리지 않게)
+
+**여행 상세**
+1. PageHeader (제목 "두 번째 여행", 부제 지역 이름)
+2. 흰 카드 하나 안에: 날짜(26px, 굵게) → 기간 "2박 3일"(muted, `formatTripLength`. 없으면 뺀다) → "다녀온 동네" 칩(accent-soft 바탕, 핀 그림) → 구분선 → "여행일기" 작은 제목 → 일기(고운바탕, 줄바꿈 그대로, 접지 않음)
+3. 아래에 "수정"(보조), "삭제"(위험) 버튼을 나란히
+4. ConfirmDialog: 뒤 화면을 어둡게(검정 40%) 하고, 휴대폰에서는 아래에서 올라오는 흰 카드(위 모서리 24px), 넓은 화면에서는 가운데 카드로 보여 준다. 버튼은 "취소"(보조), "삭제"(위험)
+
+**공통 부품**
+- StatusMessage: 불러오는 중은 muted 글자로 가운데, 빈 목록은 점선 상자, 에러는 흰 카드 + danger 글자 + 보조 버튼
+- AttributionFooter: 12px muted 글자로 가운데, 맨 아래 안전 영역 위
+
+### 10-6. 지도 그리기에서 바뀌는 것
+
+- 색: 0번은 surface, 1번은 visit-once, 2번 이상은 지형 무늬 (바탕 terrain-base)
+- 시·군·구 경계선(land-edge, 0.6px) 위에 시·도 경계선(sido-edge, 1px)을 한 겹 더 그린다. 지역 코드 앞 두 자리가 다른 이웃 사이에만 그린다 (topojson `mesh`). 이 선은 눌리지 않는다 (`pointer-events: none`)
+- 키보드로 고른 지역은 ink 색 2px 테두리
+- `aria-label`, `data-color-stage`, `role`, `tabIndex`는 그대로다
+
+### 10-7. 바뀌지 않는 것
+
+- 5·6장의 모든 문구, 버튼 이름, 화면 읽기용 이름. 예외는 "‹ 뒤로" 글자가 그림으로 바뀌는 것 하나다 (3-4, TEST_CASES UI-30)
+- 주소, 동작, 계산 결과

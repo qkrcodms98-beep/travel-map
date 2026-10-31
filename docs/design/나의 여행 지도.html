@@ -1,0 +1,964 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>나의 여행 지도</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Gowun+Batang:wght@400;700&display=swap">
+<style>
+/* 레이아웃: 넓은 화면은 왼쪽 지도 + 오른쪽 기록 패널, 폰에서는 지도 위 / 패널 아래로 쌓임 */
+:root {
+  --bg: #F3F5F7;
+  --surface: #FFFFFF;
+  --ink: #18212B;
+  --muted: #5B6672;
+  --line: #E2E6EA;
+  --sea: #DCE6EE;
+  --land: #FFFFFF;
+  --land-edge: #CBD3DA;
+  --sido-edge: #8E9AA6;
+  --v1: #DCE8B8;
+  --v2: #6E8B4A;
+  --accent: #4E7D3A;
+  --accent-ink: #3B6A2A;
+  --accent-soft: #E5EFD8;
+  --btn: #18212B;
+  --btn-ink: #FFFFFF;
+  --on-accent: #FFFFFF;
+  --danger: #B42318;
+  --shadow: 0 8px 24px rgba(24, 33, 43, 0.08);
+  --font-ui: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  --font-diary: 'Gowun Batang', 'AppleMyungjo', 'Batang', serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10151B; --surface: #19212A; --ink: #E7ECF1; --muted: #9AA6B2; --line: #2A343F;
+    --sea: #0B1620; --land: #2B3540; --land-edge: #10151B; --sido-edge: #66737F;
+    --v1: #4D5D35; --v2: #6E8B4A; --accent: #8DBF6B; --accent-ink: #A8D488; --accent-soft: #24311D;
+    --btn: #E7ECF1; --btn-ink: #10151B; --on-accent: #10151B; --danger: #FF8A80; --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10151B; --surface: #19212A; --ink: #E7ECF1; --muted: #9AA6B2; --line: #2A343F;
+  --sea: #0B1620; --land: #2B3540; --land-edge: #10151B; --sido-edge: #66737F;
+  --v1: #4D5D35; --v2: #6E8B4A; --accent: #8DBF6B; --accent-ink: #A8D488; --accent-soft: #24311D;
+  --btn: #E7ECF1; --btn-ink: #10151B; --on-accent: #10151B; --danger: #FF8A80; --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+}
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; letter-spacing: -0.02em; }
+
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.top { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: flex-end; justify-content: space-between; }
+.top .eyebrow { font-size: 13px; color: var(--muted); font-weight: 500; }
+.top h1 { font-size: 28px; font-weight: 700; }
+.stats { display: flex; gap: 8px; flex-wrap: wrap; }
+.stat { background: var(--surface); border-radius: 14px; padding: 10px 14px; min-width: 96px; display: flex; flex-direction: column; }
+.stat span { font-size: 12px; color: var(--muted); }
+.stat b { font-size: 20px; font-variant-numeric: tabular-nums; }
+.stat b small { font-size: 13px; font-weight: 500; color: var(--muted); }
+
+.app { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .app { grid-template-columns: minmax(0, 1fr); } }
+
+/* 지도 */
+.mapcard { background: var(--surface); border-radius: 24px; padding: 12px; position: relative; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.maptools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.search { position: relative; flex: 1 1 200px; min-width: 0; }
+.search input { width: 100%; height: 44px; border-radius: 22px; border: 1px solid var(--line); background: var(--bg); padding: 0 16px; }
+.toggle { display: inline-flex; background: var(--bg); border-radius: 22px; padding: 4px; gap: 2px; }
+.toggle button { border: 0; background: transparent; height: 36px; padding: 0 14px; border-radius: 18px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.toggle button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+.mapbox { position: relative; width: 100%; aspect-ratio: 5 / 6; max-width: 100%; border-radius: 16px; overflow: hidden; background: var(--sea); touch-action: none; }
+.mapbox svg { width: 100%; height: 100%; display: block; }
+.region { fill: var(--land); stroke: var(--land-edge); stroke-width: 0.6; vector-effect: non-scaling-stroke; cursor: pointer; transition: fill 0.2s; }
+.region[data-c="1"] { fill: var(--v1); }
+.region[data-c="2"] { fill: url(#terrain); }
+.region:hover { filter: brightness(0.93); }
+.region.sel { stroke: var(--ink); stroke-width: 2.2; }
+.sido-edge { fill: none; stroke: var(--sido-edge); stroke-width: 1; vector-effect: non-scaling-stroke; pointer-events: none; }
+.sel-edge { fill: none; stroke: var(--ink); stroke-width: 2.4; vector-effect: non-scaling-stroke; pointer-events: none; }
+.maplabel { position: absolute; pointer-events: none; background: var(--ink); color: var(--surface); font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 10px; transform: translate(-50%, -130%); white-space: nowrap; }
+.legend { position: absolute; left: 12px; bottom: 12px; display: flex; gap: 10px; background: var(--surface); border-radius: 12px; padding: 8px 12px; font-size: 12px; color: var(--muted); box-shadow: var(--shadow); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -2px; border: 1px solid var(--land-edge); background-size: 400%; background-position: 70% 30%; }
+.progress { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; margin-top: 4px; }
+.progress div { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.6s; }
+.zoombtns { position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 6px; }
+.zoombtns button { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-size: 18px; font-weight: 600; box-shadow: var(--shadow); }
+.loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 14px; }
+
+/* 오른쪽 패널 */
+.panel { background: var(--surface); border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.panel-head { display: flex; align-items: center; gap: 8px; }
+.panel-head h2 { font-size: 22px; font-weight: 700; }
+.panel-head .sub { font-size: 13px; color: var(--muted); }
+.iconbtn { width: 44px; height: 44px; flex: none; border-radius: 22px; border: 1px solid var(--line); background: var(--surface); display: inline-flex; align-items: center; justify-content: center; }
+.btn { height: 46px; border: 0; border-radius: 14px; padding: 0 18px; background: var(--btn); color: var(--btn-ink); font-weight: 600; font-size: 15px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn.danger { background: transparent; color: var(--danger); border: 1px solid var(--line); }
+.btn.wide { width: 100%; }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.muted { color: var(--muted); font-size: 13px; margin: 0; }
+.section-title { font-size: 14px; font-weight: 700; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.section-title span { font-size: 12px; font-weight: 500; color: var(--muted); }
+.empty { border: 1.5px dashed var(--line); border-radius: 16px; padding: 18px; text-align: center; color: var(--muted); font-size: 14px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+
+.triplist { display: flex; flex-direction: column; gap: 10px; }
+.trip { display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--line); border-radius: 18px; padding: 14px; background: var(--surface); text-align: left; width: 100%; }
+.trip:hover { border-color: var(--muted); }
+.trip .row { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.trip .ord { font-size: 12px; font-weight: 600; color: var(--accent-ink); }
+.trip .dates { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.trip .meta { font-size: 13px; color: var(--muted); }
+.thumbs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.thumbs img, .thumbs .more { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; display: block; background: var(--bg); }
+.thumbs .more { display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--muted); }
+.badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink); margin-left: 6px; vertical-align: 1px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { height: 34px; padding: 0 12px; border-radius: 17px; border: 1px solid var(--line); background: var(--surface); font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+.chip.static { background: var(--accent-soft); border-color: transparent; color: var(--accent-ink); font-weight: 600; }
+
+.minimap { width: 100%; aspect-ratio: 4 / 3; max-width: 100%; background: var(--bg); border-radius: 16px; position: relative; overflow: hidden; }
+.minimap svg { width: 100%; height: 100%; display: block; }
+.dong { fill: var(--land); stroke: var(--land-edge); stroke-width: 0.8; vector-effect: non-scaling-stroke; }
+.dong[data-c="1"] { fill: var(--v1); }
+.dong[data-c="2"] { fill: url(#terrain-mini); }
+.minimap.pick .dong { cursor: pointer; }
+.minimap.pick .dong:hover { filter: brightness(0.92); }
+.dongname { font-size: 10px; fill: var(--muted); pointer-events: none; text-anchor: middle; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label, .field .lbl { font-size: 13px; font-weight: 600; }
+.field input[type="date"], .field textarea { width: 100%; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 10px 12px; min-height: 46px; }
+.field textarea { font-family: var(--font-diary); font-size: 16px; line-height: 1.7; min-height: 130px; resize: vertical; }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.err { color: var(--danger); font-size: 13px; margin: 0; }
+
+.photogrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.ph { position: relative; aspect-ratio: 1; max-width: 100%; border-radius: 10px; overflow: hidden; background: var(--bg); }
+.ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ph .x { position: absolute; right: 4px; top: 4px; width: 28px; height: 28px; border-radius: 14px; border: 0; background: rgba(16, 21, 27, 0.75); color: #FFFFFF; font-size: 14px; line-height: 1; }
+.ph .cov { position: absolute; left: 4px; bottom: 4px; border: 0; border-radius: 8px; padding: 2px 7px; font-size: 11px; font-weight: 700; background: rgba(16, 21, 27, 0.75); color: #FFFFFF; }
+.ph .cov[aria-pressed="true"] { background: var(--accent); }
+.addph { aspect-ratio: 1; border-radius: 10px; border: 1.5px dashed var(--sido-edge); background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; color: var(--muted); }
+.addph input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+
+.hero { width: 100%; aspect-ratio: 4 / 3; max-width: 100%; border-radius: 16px; overflow: hidden; background: var(--bg); position: relative; }
+.hero img { width: 100%; height: 100%; object-fit: contain; display: block; background: #0B0F13; cursor: zoom-in; }
+.hero .count { position: absolute; right: 10px; bottom: 10px; background: rgba(16, 21, 27, 0.8); color: #FFFFFF; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 12px; }
+.hero .nav { position: absolute; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; border-radius: 20px; border: 0; background: rgba(255, 255, 255, 0.9); color: #18212B; font-size: 18px; }
+.hero .prev { left: 8px; } .hero .next { right: 8px; }
+.strip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.strip button { flex: none; width: 60px; height: 60px; padding: 0; border: 2px solid transparent; border-radius: 10px; overflow: hidden; background: var(--bg); }
+.strip button[aria-current="true"] { border-color: var(--ink); }
+.strip img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.diary { font-family: var(--font-diary); font-size: 17px; line-height: 1.8; white-space: pre-wrap; margin: 0; max-width: 65ch; }
+.confirm { border: 1px solid var(--danger); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.actions .btn { flex: 1 1 120px; }
+
+.lightbox { position: fixed; inset: 0; background: rgba(5, 8, 11, 0.94); z-index: 50; display: flex; align-items: center; justify-content: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.lightbox button { position: absolute; top: max(16px, env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); width: 44px; height: 44px; border-radius: 22px; border: 0; background: rgba(255,255,255,0.9); color: #18212B; font-size: 18px; }
+.notice { font-size: 12px; color: var(--muted); background: var(--surface); border-radius: 12px; padding: 10px 14px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">사진으로 남기는 국내 여행</div>
+      <h1>나의 여행 지도</h1>
+    </div>
+    <div class="stats" aria-live="polite">
+      <div class="stat"><span>다녀온 시·군·구</span><b id="st-regions">0<small> / 0</small></b></div>
+      <div class="stat"><span>여행</span><b id="st-trips">0<small>번</small></b></div>
+      <div class="stat"><span>사진</span><b id="st-photos">0<small>장</small></b></div>
+      <div class="stat" style="min-width: 140px"><span>지도 완성도</span><b id="st-done">0<small>%</small></b><div class="progress" aria-hidden="true"><div id="st-bar" style="width: 0%"></div></div></div>
+    </div>
+  </header>
+
+  <div class="app">
+    <section class="mapcard" aria-label="전국 지도">
+      <div class="maptools">
+        <div class="search">
+          <label for="q" class="muted" hidden>지역 찾기</label>
+          <input id="q" list="regionlist" placeholder="지역 이름으로 찾기 (예: 경주)" autocomplete="off">
+          <datalist id="regionlist"></datalist>
+        </div>
+        <div class="toggle" role="group" aria-label="지도 보기 방식">
+          <button type="button" id="mode-color" aria-pressed="true">색으로</button>
+          <button type="button" id="mode-photo" aria-pressed="false">사진으로</button>
+        </div>
+      </div>
+      <div class="mapbox" id="mapbox">
+        <div class="loading" id="maploading">지도를 불러오는 중…</div>
+        <div class="legend"><span><i style="background-color: var(--land)"></i>아직</span><span><i style="background-color: var(--v1)"></i>1번</span><span><i id="lg-terrain" style="background-color: var(--v2)"></i>2번 이상</span></div>
+        <div class="zoombtns">
+          <button type="button" id="zin" aria-label="확대">+</button>
+          <button type="button" id="zout" aria-label="축소">−</button>
+          <button type="button" id="zreset" aria-label="전국 보기">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel" aria-live="polite"></section>
+  </div>
+  <p class="notice" id="storenote">기록과 사진은 이 브라우저 안에만 저장돼요. 다른 기기나 다른 사람에게는 보이지 않아요.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script>
+/* ============================================================
+   나의 여행 지도 - 맛보기 버전
+   핵심 아이디어: "지역"이 아니라 "여행"이 기록 한 건.
+   한 지역(경주시)은 여행을 여러 개 가질 수 있다.
+   ============================================================ */
+
+const DATA_BASE = 'https://cdn.jsdelivr.net/npm/@tenqube/react-korea-bubble-map@0.0.3/dist/esm/';
+const SIGUNGU_URL = DATA_BASE + 'sigungu-a3decc47.js';   // 시/군/구 경계 (약 1.6MB)
+const EMD_URL = DATA_BASE + 'emd-c52296f3.js';           // 읍/면/동 경계 (약 4MB, 필요할 때만 불러옴)
+
+const SIDO = { '11': '서울', '26': '부산', '27': '대구', '28': '인천', '29': '광주', '30': '대전', '31': '울산', '36': '세종', '41': '경기', '43': '충북', '44': '충남', '45': '전북', '46': '전남', '47': '경북', '48': '경남', '50': '제주', '51': '강원', '52': '전북' };
+const METRO = ['11', '26', '27', '28', '29', '30', '31'];
+
+/* ---------- 1. 저장소 (IndexedDB) ---------- */
+// trips: 여행 기록 (사진 파일은 빼고 사진 id만)
+// photos: 사진 파일 원본 + 작은 썸네일
+const store = {
+  db: null,
+  mem: { trips: new Map(), photos: new Map() }, // IndexedDB를 못 쓸 때 대신 쓰는 메모리 저장소
+  async open() {
+    try {
+      this.db = await new Promise((resolve, reject) => {
+        const req = indexedDB.open('travel-map', 1);
+        req.onupgradeneeded = () => {
+          req.result.createObjectStore('trips', { keyPath: 'id' });
+          req.result.createObjectStore('photos', { keyPath: 'id' });
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      this.db = null;
+      document.getElementById('storenote').textContent = '이 브라우저에서는 저장소를 쓸 수 없어서, 페이지를 닫으면 기록이 사라져요.';
+    }
+  },
+  tx(name, mode, fn) {
+    return new Promise((resolve, reject) => {
+      const t = this.db.transaction(name, mode);
+      const s = t.objectStore(name);
+      const r = fn(s);
+      t.oncomplete = () => resolve(r && r.result);
+      t.onerror = () => reject(t.error);
+    });
+  },
+  async all(name) {
+    if (!this.db) return [...this.mem[name].values()];
+    try { return await this.tx(name, 'readonly', s => s.getAll()) || []; } catch (e) { return [...this.mem[name].values()]; }
+  },
+  async get(name, id) {
+    if (!this.db) return this.mem[name].get(id);
+    try { return await this.tx(name, 'readonly', s => s.get(id)); } catch (e) { return this.mem[name].get(id); }
+  },
+  async put(name, value) {
+    this.mem[name].set(value.id, value);
+    if (!this.db) return;
+    try { await this.tx(name, 'readwrite', s => s.put(value)); } catch (e) { /* 메모리에는 남아 있음 */ }
+  },
+  async del(name, id) {
+    this.mem[name].delete(id);
+    if (!this.db) return;
+    try { await this.tx(name, 'readwrite', s => s.delete(id)); } catch (e) {}
+  }
+};
+
+/* ---------- 2. 상태 ---------- */
+const state = {
+  trips: [],          // 모든 여행
+  regions: new Map(), // key -> { key, name, sido, feature, codes }
+  view: { name: 'home' }, // home | region | form | trip
+  mapMode: 'color',
+  selected: null
+};
+const urlCache = new Map(); // 사진 id -> 화면에 띄울 주소(blob URL)
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = d => d ? d.replaceAll('-', '.') : '';
+const ORD = ['첫', '두', '세', '네', '다섯', '여섯', '일곱', '여덟', '아홉', '열'];
+const ordinal = n => (ORD[n - 1] || n) + ' 번째 여행';
+function nights(a, b) {
+  if (!a || !b) return '';
+  const d = Math.round((new Date(b) - new Date(a)) / 86400000);
+  return d <= 0 ? '당일치기' : `${d}박 ${d + 1}일`;
+}
+function dateRange(t) {
+  if (!t.end || t.end === t.start) return fmt(t.start);
+  const sameYear = t.start.slice(0, 4) === t.end.slice(0, 4);
+  return `${fmt(t.start)} – ${sameYear ? fmt(t.end).slice(5) : fmt(t.end)}`;
+}
+const tripsOf = key => state.trips.filter(t => t.regionKey === key).sort((a, b) => a.start.localeCompare(b.start));
+
+async function photoURL(id, kind = 'thumb') {
+  const k = id + ':' + kind;
+  if (urlCache.has(k)) return urlCache.get(k);
+  const p = await store.get('photos', id);
+  if (!p) return '';
+  const url = URL.createObjectURL(kind === 'full' ? p.full : p.thumb);
+  urlCache.set(k, url);
+  return url;
+}
+
+/* ---------- 3. 사진 처리: 원본은 그대로, 목록용 썸네일만 따로 작게 ---------- */
+async function makeThumb(blob, max = 480) {
+  const bmp = await createImageBitmap(blob);
+  const r = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas');
+  c.width = Math.round(bmp.width * r); c.height = Math.round(bmp.height * r);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  return await new Promise(res => c.toBlob(res, 'image/jpeg', 0.82));
+}
+
+/* ---------- 4. 전국 지도 ---------- */
+const W = 600, H = 720;
+let svg, gRoot, zoom, projection, path, labelEl;
+
+async function loadMap() {
+  const mod = await import(SIGUNGU_URL);
+  const topo = mod.default;
+  const obj = topo.objects.sigungu;
+
+  // "수원시 장안구"처럼 구로 나뉜 시는 하나로 합친다 → 여행할 때 생각하는 단위
+  const groups = new Map();
+  for (const g of obj.geometries) {
+    const p = g.properties;
+    const sido = p.CODE.slice(0, 2);
+    const city = p.KOR_NM.split(' ')[0];
+    const key = sido + ':' + city;
+    if (!groups.has(key)) groups.set(key, { key, sido, city, geoms: [], codes: [] });
+    groups.get(key).geoms.push(g);
+    groups.get(key).codes.push(p.CODE.slice(0, 5));
+  }
+  for (const gr of groups.values()) {
+    const feature = { type: 'Feature', properties: { key: gr.key }, geometry: topojson.merge(topo, gr.geoms) };
+    const name = METRO.includes(gr.sido) ? `${SIDO[gr.sido]} ${gr.city}` : gr.city;
+    state.regions.set(gr.key, { key: gr.key, name, city: gr.city, sido: gr.sido, sidoName: SIDO[gr.sido] || '', feature, codes: gr.codes });
+  }
+
+  const features = [...state.regions.values()].map(r => r.feature);
+  const fc = { type: 'FeatureCollection', features };
+  projection = d3.geoMercator().fitExtent([[16, 16], [W - 16, H - 16]], fc);
+  path = d3.geoPath(projection);
+  for (const r of state.regions.values()) r.area = path.area(r.feature);
+
+  const box = document.getElementById('mapbox');
+  svg = d3.select(box).insert('svg', ':first-child').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', '시군구 지도, 다녀온 지역이 색칠됨');
+  // 지형 무늬(위성 느낌): 그림이 준비되기 전에는 단색 초록으로 칠해 둠
+  const tp = svg.append('defs').append('pattern').attr('id', 'terrain').attr('patternUnits', 'userSpaceOnUse').attr('width', W).attr('height', H);
+  tp.append('rect').attr('width', W).attr('height', H).attr('fill', '#6E8B4A');
+  tp.append('image').attr('width', W).attr('height', H).attr('preserveAspectRatio', 'none');
+  svg.append('defs').attr('class', 'pdefs');
+  gRoot = svg.append('g');
+  gRoot.append('g').attr('class', 'regions')
+    .selectAll('path').data([...state.regions.values()]).join('path')
+    .attr('class', 'region').attr('d', r => path(r.feature)).attr('data-key', r => r.key)
+    .on('click', (ev, r) => openRegion(r.key, true))
+    .on('mousemove', (ev, r) => showLabel(ev, r.name))
+    .on('mouseleave', hideLabel)
+    .append('title').text(r => `${r.sidoName} ${r.name}`.trim());
+  gRoot.append('path').attr('class', 'sido-edge')
+    .attr('d', path(topojson.mesh(topo, obj, (a, b) => a !== b && a.properties.CODE.slice(0, 2) !== b.properties.CODE.slice(0, 2))));
+  gRoot.append('path').attr('class', 'sel-edge');
+
+  zoom = d3.zoom().scaleExtent([1, 24]).translateExtent([[0, 0], [W, H]])
+    .on('zoom', ev => gRoot.attr('transform', ev.transform));
+  svg.call(zoom).on('dblclick.zoom', null);
+  document.getElementById('zin').onclick = () => svg.transition().duration(250).call(zoom.scaleBy, 1.6);
+  document.getElementById('zout').onclick = () => svg.transition().duration(250).call(zoom.scaleBy, 1 / 1.6);
+  document.getElementById('zreset').onclick = () => svg.transition().duration(400).call(zoom.transform, d3.zoomIdentity);
+
+  labelEl = document.createElement('div');
+  labelEl.className = 'maplabel'; labelEl.hidden = true;
+  box.appendChild(labelEl);
+  document.getElementById('maploading').remove();
+
+  const dl = document.getElementById('regionlist');
+  dl.innerHTML = [...state.regions.values()].map(r => `<option value="${esc(r.name)}">${esc(r.sidoName)}</option>`).join('');
+  document.getElementById('q').addEventListener('change', e => {
+    const v = e.target.value.trim();
+    const r = [...state.regions.values()].find(x => x.name === v) || [...state.regions.values()].find(x => x.name.includes(v));
+    if (r) { openRegion(r.key, true); e.target.value = ''; }
+  });
+}
+
+function showLabel(ev, text) {
+  const b = document.getElementById('mapbox').getBoundingClientRect();
+  labelEl.textContent = text; labelEl.hidden = false;
+  labelEl.style.left = (ev.clientX - b.left) + 'px';
+  labelEl.style.top = (ev.clientY - b.top) + 'px';
+}
+function hideLabel() { if (labelEl) labelEl.hidden = true; }
+
+function zoomTo(key) {
+  const r = state.regions.get(key);
+  if (!r || !svg) return;
+  const [[x0, y0], [x1, y1]] = path.bounds(r.feature);
+  const k = Math.min(10, 0.45 / Math.max((x1 - x0) / W, (y1 - y0) / H));
+  const t = d3.zoomIdentity.translate(W / 2, H / 2).scale(Math.max(1.5, k)).translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
+  svg.transition().duration(600).call(zoom.transform, t);
+}
+
+// 여행 기록에 맞춰 지도 색칠 / 사진 채우기
+async function paintMap() {
+  if (!svg) return;
+  const counts = new Map();
+  for (const t of state.trips) counts.set(t.regionKey, (counts.get(t.regionKey) || 0) + 1);
+  const defs = svg.select('defs.pdefs');
+  defs.selectAll('*').remove();
+  let patN = 0;
+  const paths = svg.selectAll('.region');
+  paths.attr('data-c', r => Math.min(2, counts.get(r.key) || 0) || null).style('fill', null)
+    .classed('sel', r => r.key === state.selected);
+
+  if (state.mapMode === 'photo') {
+    for (const [key] of counts) {
+      const latest = tripsOf(key).filter(t => t.coverId || t.photoIds.length).at(-1);
+      if (!latest) continue;
+      const url = await photoURL(latest.coverId || latest.photoIds[0], 'thumb');
+      const id = 'pat-' + (patN++);
+      const pat = defs.append('pattern').attr('id', id).attr('patternContentUnits', 'objectBoundingBox').attr('width', 1).attr('height', 1);
+      pat.append('image').attr('href', url).attr('width', 1).attr('height', 1).attr('preserveAspectRatio', 'xMidYMid slice');
+      paths.filter(r => r.key === key).style('fill', `url(#${id})`);
+    }
+  }
+  const sel = state.selected && state.regions.get(state.selected);
+  svg.select('.sel-edge').attr('d', sel ? path(sel.feature) : null);
+}
+
+/* ---------- 5. 위성 지형 무늬: 산맥 위치 + 노이즈로 위성사진처럼 그리기 ---------- */
+// 실제 산맥이 지나가는 대략적인 선 (경도, 위도). 이 선에 가까울수록 산(짙은 숲), 멀수록 평야(논밭).
+const RIDGES = [
+  { w: 1.0, s: 0.32, pts: [[128.35, 38.6], [128.5, 38.1], [128.75, 37.7], [129.0, 37.3], [129.1, 36.9], [129.05, 36.5], [129.0, 36.1]] }, // 태백산맥
+  { w: 0.85, s: 0.28, pts: [[128.6, 37.0], [128.3, 36.8], [127.95, 36.45], [127.75, 36.0], [127.6, 35.6], [127.7, 35.33]] }, // 소백산맥~지리산
+  { w: 0.55, s: 0.35, pts: [[127.4, 38.1], [127.9, 37.6], [128.3, 37.15]] },  // 강원 내륙
+  { w: 0.45, s: 0.3, pts: [[127.1, 35.9], [127.0, 35.4], [126.9, 35.0]] },     // 노령산맥
+  { w: 0.45, s: 0.25, pts: [[128.0, 35.4], [128.6, 35.6], [129.0, 35.45]] },  // 영남 알프스 쪽
+  { w: 0.8, s: 0.15, pts: [[126.53, 33.36], [126.54, 33.37]] }                 // 한라산
+];
+function mountain(lon, lat) {
+  let m = 0;
+  for (const r of RIDGES) {
+    let best = Infinity;
+    for (let i = 0; i < r.pts.length - 1; i++) {
+      const [ax, ay] = r.pts[i], [bx, by] = r.pts[i + 1];
+      const px = (lon - ax) * 0.81, py = lat - ay, vx = (bx - ax) * 0.81, vy = by - ay;
+      const t = Math.max(0, Math.min(1, (px * vx + py * vy) / (vx * vx + vy * vy || 1)));
+      const dx = px - t * vx, dy = py - t * vy;
+      best = Math.min(best, dx * dx + dy * dy);
+    }
+    m = Math.max(m, r.w * Math.exp(-best / (r.s * r.s)));
+  }
+  return m;
+}
+// 같은 좌표면 언제나 같은 값이 나오는 "랜덤" → 지도를 다시 그려도 지형이 안 바뀜
+function hash(ix, iy, s) {
+  let h = Math.imul(ix, 374761393) ^ Math.imul(iy, 668265263) ^ Math.imul(s + 1, 1442695041);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+function vnoise(x, y, s) {
+  const ix = Math.floor(x), iy = Math.floor(y), fx = x - ix, fy = y - iy;
+  const u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+  const a = hash(ix, iy, s), b = hash(ix + 1, iy, s), c = hash(ix, iy + 1, s), d = hash(ix + 1, iy + 1, s);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+// 높이(0~1)에 따른 색: 황토 들판 → 올리브 논 → 연두 → 녹색 → 짙은 숲
+const STOPS = [[0, [204, 186, 128]], [0.2, [178, 170, 102]], [0.38, [134, 153, 84]], [0.56, [94, 124, 64]], [0.74, [64, 98, 50]], [1, [46, 70, 40]]];
+function terrainRGB(e, out) {
+  let i = 1;
+  while (i < STOPS.length - 1 && e > STOPS[i][0]) i++;
+  const [e0, c0] = STOPS[i - 1], [e1, c1] = STOPS[i];
+  const t = Math.max(0, Math.min(1, (e - e0) / (e1 - e0)));
+  out[0] = c0[0] + (c1[0] - c0[0]) * t; out[1] = c0[1] + (c1[1] - c0[1]) * t; out[2] = c0[2] + (c1[2] - c0[2]) * t;
+}
+function makeTerrain(proj, w, h, scale) {
+  const pw = Math.round(w * scale), ph = Math.round(h * scale);
+  const lons = new Float64Array(pw), lats = new Float64Array(ph);
+  for (let x = 0; x < pw; x++) lons[x] = proj.invert([(x + 0.5) / scale, h / 2])[0];
+  for (let y = 0; y < ph; y++) lats[y] = proj.invert([w / 2, (y + 0.5) / scale])[1];
+  const degPx = Math.abs(lons[1] - lons[0]) || 0.001;
+  const freqs = [];
+  for (let f = 1.5; f * degPx < 0.6 && freqs.length < 10; f *= 2) freqs.push(f);
+  // 산 높이는 4픽셀 간격으로만 계산하고 사이는 부드럽게 채움
+  const step = 4, gw = Math.ceil(pw / step) + 1, gh = Math.ceil(ph / step) + 1, mg = new Float32Array(gw * gh);
+  for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++)
+    mg[gy * gw + gx] = mountain(lons[Math.min(gx * step, pw - 1)], lats[Math.min(gy * step, ph - 1)]);
+  const elev = new Float32Array(pw * ph), mtn = new Float32Array(pw * ph), lu = new Float32Array(pw * ph);
+  for (let y = 0; y < ph; y++) {
+    const gy = Math.min(gh - 2, Math.floor(y / step)), ty = y / step - gy, lat = lats[y];
+    for (let x = 0; x < pw; x++) {
+      const gx = Math.min(gw - 2, Math.floor(x / step)), tx = x / step - gx;
+      const m = (mg[gy * gw + gx] * (1 - tx) + mg[gy * gw + gx + 1] * tx) * (1 - ty) + (mg[(gy + 1) * gw + gx] * (1 - tx) + mg[(gy + 1) * gw + gx + 1] * tx) * ty;
+      const u = lons[x] * 0.81;
+      // n: 울퉁불퉁한 높낮이, r: 산등성이처럼 날카로운 무늬(산에서만 강하게)
+      let n = 0, amp = 0.5, norm = 0, r = 0, rn = 0;
+      for (let o = 0; o < freqs.length; o++) {
+        const v = vnoise(u * freqs[o], lat * freqs[o], o);
+        n += amp * v; norm += amp;
+        if (freqs[o] >= 6) { r += amp * (1 - Math.abs(2 * v - 1)); rn += amp; }
+        amp *= 0.55;
+      }
+      n /= norm; r = rn ? r / rn : 0.5;
+      const i = y * pw + x;
+      mtn[i] = m;
+      lu[i] = vnoise(u * 4, lat * 4, 50) * 0.6 + vnoise(u * 16, lat * 16, 51) * 0.4; // 논(초록)과 밭(황토)을 섞는 정도
+      elev[i] = Math.max(0, Math.min(1, m * 0.66 + n * 0.45 + m * (r - 0.5) * 0.5 - 0.07));
+    }
+  }
+  const c = document.createElement('canvas');
+  c.width = pw; c.height = ph;
+  const g = c.getContext('2d');
+  const img = g.createImageData(pw, ph), px = img.data, rgb = [0, 0, 0];
+  const K = 0.05 / degPx;
+  for (let y = 0; y < ph; y++) {
+    for (let x = 0; x < pw; x++) {
+      const i = y * pw + x, e = elev[i];
+      terrainRGB(e, rgb);
+      // 평야는 작은 논밭 조각처럼 밝기를 조금씩 다르게
+      if (e < 0.45) {
+        const low = (0.45 - e) / 0.45;
+        const gmix = Math.max(0, Math.min(1, (lu[i] - 0.35) * 2.2)) * low * 0.8;
+        rgb[0] += (118 - rgb[0]) * gmix; rgb[1] += (146 - rgb[1]) * gmix; rgb[2] += (78 - rgb[2]) * gmix;
+        const f = hash(Math.floor(lons[x] * 0.81 / 0.006), Math.floor(lats[y] / 0.0045), 99);
+        const k = low * (f - 0.5) * 0.24;
+        rgb[0] *= 1 + k; rgb[1] *= 1 + k * 1.1; rgb[2] *= 1 + k * 0.6;
+      }
+      // 북서쪽에서 빛이 비친다고 보고 그림자 넣기 (산이 입체적으로 보이게)
+      const ul = elev[Math.max(0, y - 1) * pw + Math.max(0, x - 1)], lr = elev[Math.min(ph - 1, y + 1) * pw + Math.min(pw - 1, x + 1)];
+      const shade = 1 + Math.max(-0.35, Math.min(0.35, (lr - ul) * K * (0.35 + mtn[i])));
+      const j = i * 4;
+      px[j] = rgb[0] / shade; px[j + 1] = rgb[1] / shade; px[j + 2] = rgb[2] / shade; px[j + 3] = 255;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  return new Promise(res => c.toBlob(b => res(URL.createObjectURL(b)), 'image/jpeg', 0.88));
+}
+const terrainCache = new Map();
+function terrainURL(id, proj, w, h, scale) {
+  if (!terrainCache.has(id)) terrainCache.set(id, new Promise(res => setTimeout(() => res(makeTerrain(proj, w, h, scale)), 30)));
+  return terrainCache.get(id);
+}
+async function buildTerrain() {
+  const url = await terrainURL('korea', projection, W, H, 2);
+  svg.select('#terrain image').attr('href', url);
+  const lg = document.getElementById('lg-terrain');
+  if (lg) lg.style.backgroundImage = `url(${url})`;
+}
+
+/* ---------- 6. 읍/면/동 지도 (지역을 열 때만 불러옴) ---------- */
+let emdPromise = null;
+function loadEmd() {
+  if (!emdPromise) emdPromise = import(EMD_URL).then(m => m.default).catch(e => { emdPromise = null; throw e; });
+  return emdPromise;
+}
+async function dongsOf(key) {
+  const r = state.regions.get(key);
+  const topo = await loadEmd();
+  const geoms = topo.objects.emd.geometries.filter(g => r.codes.some(c => g.properties.CODE.startsWith(c)));
+  return geoms.map(g => ({ code: g.properties.CODE, name: g.properties.KOR_NM, feature: topojson.feature(topo, g) }));
+}
+
+// 작은 동네 지도 그리기. counts: 동이름 -> 횟수, onPick이 있으면 클릭해서 고르기
+async function drawMiniMap(el, key, counts, onPick) {
+  el.innerHTML = '<div class="loading">동네 지도를 불러오는 중…</div>';
+  let dongs;
+  try { dongs = await dongsOf(key); } catch (e) {
+    el.innerHTML = '<div class="loading">동네 지도를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.</div>';
+    return [];
+  }
+  if (!el.isConnected) return dongs;
+  el.innerHTML = '';
+  const mw = 400, mh = 300;
+  const proj = d3.geoMercator().fitExtent([[10, 10], [mw - 10, mh - 10]], { type: 'FeatureCollection', features: dongs.map(d => d.feature) });
+  const p = d3.geoPath(proj);
+  const s = d3.select(el).append('svg').attr('viewBox', `0 0 ${mw} ${mh}`).attr('role', 'img').attr('aria-label', '읍면동 지도');
+  const mp = s.append('defs').append('pattern').attr('id', 'terrain-mini').attr('patternUnits', 'userSpaceOnUse').attr('width', mw).attr('height', mh);
+  mp.append('rect').attr('width', mw).attr('height', mh).attr('fill', '#6E8B4A');
+  const mimg = mp.append('image').attr('width', mw).attr('height', mh).attr('preserveAspectRatio', 'none');
+  terrainURL('mini:' + key, proj, mw, mh, 2).then(u => mimg.attr('href', u));
+  s.selectAll('path').data(dongs).join('path')
+    .attr('class', 'dong').attr('d', d => p(d.feature))
+    .attr('data-c', d => Math.min(2, counts.get(d.name) || 0) || null)
+    .on('click', (ev, d) => onPick && onPick(d.name))
+    .append('title').text(d => d.name);
+  // 면적이 넉넉한 동네에만 이름 표시
+  s.selectAll('text').data(dongs.filter(d => p.area(d.feature) > 500)).join('text')
+    .attr('class', 'dongname').attr('x', d => p.centroid(d.feature)[0]).attr('y', d => p.centroid(d.feature)[1] + 3).text(d => d.name);
+  return dongs;
+}
+
+/* ---------- 6. 오른쪽 패널 화면들 ---------- */
+const panel = document.getElementById('panel');
+const back = (label, fn) => `<button type="button" class="iconbtn" id="back" aria-label="${label}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>`;
+
+function render() {
+  hideLabel();
+  const v = state.view;
+  if (v.name === 'home') renderHome();
+  else if (v.name === 'region') renderRegion(v.key);
+  else if (v.name === 'form') renderForm(v);
+  else if (v.name === 'trip') renderTrip(v.id);
+  updateStats();
+  paintMap();
+}
+
+function go(view) { state.view = view; render(); panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+
+function openRegion(key, zoomIn) {
+  state.selected = key;
+  if (zoomIn) zoomTo(key);
+  go({ name: 'region', key });
+}
+
+function updateStats() {
+  const keys = new Set(state.trips.map(t => t.regionKey));
+  const photos = state.trips.reduce((n, t) => n + t.photoIds.length, 0);
+  document.getElementById('st-regions').innerHTML = `${keys.size}<small> / ${state.regions.size}</small>`;
+  document.getElementById('st-trips').innerHTML = `${state.trips.length}<small>번</small>`;
+  document.getElementById('st-photos').innerHTML = `${photos}<small>장</small>`;
+  // 지도 완성도 = 한 번이라도 가 본 땅 넓이 / 전체 땅 넓이
+  let total = 0, done = 0;
+  for (const r of state.regions.values()) { total += r.area || 0; if (keys.has(r.key)) done += r.area || 0; }
+  const pct = total ? done / total * 100 : 0;
+  document.getElementById('st-done').innerHTML = `${pct < 10 ? pct.toFixed(1) : Math.round(pct)}<small>%</small>`;
+  document.getElementById('st-bar').style.width = pct.toFixed(2) + '%';
+}
+
+async function tripCard(t, label) {
+  const ids = [t.coverId, ...t.photoIds.filter(i => i !== t.coverId)].filter(Boolean);
+  const shown = ids.slice(0, ids.length > 5 ? 4 : 5);
+  const urls = await Promise.all(shown.map(i => photoURL(i)));
+  const more = ids.length > 5 ? `<div class="more">+${ids.length - 4}</div>` : '';
+  const dongs = t.dongs.length ? ' · ' + t.dongs.slice(0, 3).join(', ') + (t.dongs.length > 3 ? ` 외 ${t.dongs.length - 3}곳` : '') : '';
+  return `<button type="button" class="trip" data-trip="${t.id}">
+    <div class="row"><div>
+      <div class="ord">${esc(label)}${t.example ? '<span class="badge">예시</span>' : ''}</div>
+      <div class="dates">${esc(dateRange(t))}</div>
+      <div class="meta">${esc(nights(t.start, t.end))}${esc(dongs)} · 사진 ${t.photoIds.length}장</div>
+    </div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></div>
+    ${ids.length ? `<div class="thumbs">${urls.map(u => `<img src="${u}" alt="">`).join('')}${more}</div>` : ''}
+  </button>`;
+}
+function bindTripCards() {
+  panel.querySelectorAll('[data-trip]').forEach(b => b.onclick = () => {
+    const t = state.trips.find(x => x.id === b.dataset.trip);
+    state.selected = t.regionKey;
+    go({ name: 'trip', id: t.id });
+  });
+}
+
+async function renderHome() {
+  const recent = [...state.trips].sort((a, b) => b.start.localeCompare(a.start)).slice(0, 4);
+  const cards = await Promise.all(recent.map(t => {
+    const r = state.regions.get(t.regionKey);
+    const n = tripsOf(t.regionKey).findIndex(x => x.id === t.id) + 1;
+    return tripCard(t, `${r ? r.name : ''} · ${ordinal(n)}`);
+  }));
+  if (state.view.name !== 'home') return;
+  const hasExample = state.trips.some(t => t.example);
+  panel.innerHTML = `
+    <div class="panel-head"><div><h2>최근 여행</h2><p class="muted">지도에서 지역을 누르거나 위에서 이름으로 찾아 새 여행을 기록해 보세요.</p></div></div>
+    ${cards.length ? `<div class="triplist">${cards.join('')}</div>` : `<div class="empty">아직 기록이 없어요.<br>지도에서 다녀온 지역을 눌러 첫 여행을 남겨 보세요.</div>`}
+    ${hasExample ? `<button type="button" class="btn ghost wide" id="clear-ex">예시 기록 지우기</button>` : ''}`;
+  bindTripCards();
+  const ce = document.getElementById('clear-ex');
+  if (ce) ce.onclick = async () => {
+    for (const t of state.trips.filter(x => x.example)) await deleteTrip(t);
+    render();
+  };
+}
+
+async function renderRegion(key) {
+  const r = state.regions.get(key);
+  const trips = tripsOf(key);
+  const cards = await Promise.all(trips.map((t, i) => tripCard(t, ordinal(i + 1)))).then(c => c.reverse());
+  if (state.view.name !== 'region' || state.view.key !== key) return;
+  const filter = state.view.filter || 'all';
+  panel.innerHTML = `
+    <div class="panel-head">${back('전국 보기')}<div><h2>${esc(r.name)}</h2><div class="sub">${esc(r.sidoName)} · 여행 ${trips.length}번</div></div></div>
+    ${trips.length ? `<div class="chips" role="group" aria-label="동네 지도에 표시할 여행">
+      <button type="button" class="chip" data-f="all" aria-pressed="${filter === 'all'}">전체</button>
+      ${trips.map((t, i) => `<button type="button" class="chip" data-f="${t.id}" aria-pressed="${filter === t.id}">${esc(fmt(t.start).slice(0, 7))}</button>`).join('')}
+    </div>` : ''}
+    <div class="minimap" id="mini"></div>
+    <p class="muted">${trips.length ? '색칠된 곳이 다녀온 동네예요. 진할수록 여러 번 간 곳이에요.' : '아직 이 지역 여행 기록이 없어요.'}</p>
+    <button type="button" class="btn wide" id="add">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      ${esc(r.name)} 새 여행 기록하기</button>
+    ${cards.length ? `<div class="section-title">여행 기록 <span>최신 순</span></div><div class="triplist">${cards.join('')}</div>` : ''}`;
+  document.getElementById('back').onclick = () => { state.selected = null; svg && svg.transition().duration(400).call(zoom.transform, d3.zoomIdentity); go({ name: 'home' }); };
+  document.getElementById('add').onclick = () => go({ name: 'form', key });
+  panel.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { state.view.filter = b.dataset.f; renderRegion(key); });
+  bindTripCards();
+  const counts = new Map();
+  for (const t of trips) if (filter === 'all' || t.id === filter) for (const d of t.dongs) counts.set(d, (counts.get(d) || 0) + 1);
+  drawMiniMap(document.getElementById('mini'), key, counts);
+}
+
+// 여행 추가 / 수정 화면
+async function renderForm(v) {
+  const r = state.regions.get(v.key);
+  const editing = v.id ? state.trips.find(t => t.id === v.id) : null;
+  // 폼에 입력 중인 내용(draft)은 화면을 다시 그려도 유지
+  if (!v.draft) {
+    v.draft = editing
+      ? { start: editing.start, end: editing.end, dongs: [...editing.dongs], diary: editing.diary, photos: editing.photoIds.map(id => ({ id, saved: true })), coverId: editing.coverId }
+      : { start: '', end: '', dongs: [], diary: '', photos: [], coverId: null };
+  }
+  const d = v.draft;
+  const n = editing ? tripsOf(v.key).findIndex(t => t.id === editing.id) + 1 : tripsOf(v.key).length + 1;
+  const phUrls = await Promise.all(d.photos.map(p => p.saved ? photoURL(p.id) : p.preview));
+  if (state.view !== v) return;
+  panel.innerHTML = `
+    <div class="panel-head">${back('취소')}<div><h2>${editing ? '여행 수정' : '새 여행 기록'}</h2><div class="sub">${esc(r.name)} · ${ordinal(n)}</div></div></div>
+    <form id="tripform" novalidate style="display: flex; flex-direction: column; gap: 18px">
+      <div class="two">
+        <div class="field"><label for="f-start">시작일</label><input type="date" id="f-start" value="${esc(d.start)}" required></div>
+        <div class="field"><label for="f-end">종료일</label><input type="date" id="f-end" value="${esc(d.end)}"></div>
+      </div>
+      <div class="field">
+        <div class="section-title">어느 동네에 갔어요? <span>지도를 눌러서 고르기</span></div>
+        <div class="minimap pick" id="mini"></div>
+        <div class="chips" id="dongchips"></div>
+      </div>
+      <div class="field">
+        <div class="section-title">사진 ${d.photos.length}장 <span>원본 화질 그대로 저장돼요</span></div>
+        <div class="photogrid">
+          <label class="addph" for="f-photos">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>추가
+            <input type="file" id="f-photos" accept="image/*" multiple>
+          </label>
+          ${d.photos.map((p, i) => `<div class="ph"><img src="${phUrls[i]}" alt="여행 사진 ${i + 1}">
+            <button type="button" class="x" data-rm="${i}" aria-label="사진 ${i + 1} 빼기">✕</button>
+            <button type="button" class="cov" data-cov="${p.id}" aria-pressed="${d.coverId === p.id}">${d.coverId === p.id ? '대표' : '대표로'}</button></div>`).join('')}
+        </div>
+      </div>
+      <div class="field"><label for="f-diary">일기</label><textarea id="f-diary" placeholder="그날 있었던 일, 먹은 것, 기분을 적어 보세요">${esc(d.diary)}</textarea></div>
+      <p class="err" id="f-err" hidden></p>
+      <button type="submit" class="btn wide" id="f-save">${editing ? '수정 저장하기' : '기록 저장하기'}</button>
+    </form>`;
+
+  const cancel = () => go(editing ? { name: 'trip', id: editing.id } : { name: 'region', key: v.key });
+  document.getElementById('back').onclick = () => { d.photos.filter(p => !p.saved).forEach(p => URL.revokeObjectURL(p.preview)); cancel(); };
+  const keep = () => { d.start = document.getElementById('f-start').value; d.end = document.getElementById('f-end').value; d.diary = document.getElementById('f-diary').value; };
+  ['f-start', 'f-end', 'f-diary'].forEach(id => document.getElementById(id).addEventListener('input', keep));
+
+  // 동네 고르기: 지도 클릭과 칩 버튼이 같은 목록을 바꿈
+  const chipBox = document.getElementById('dongchips');
+  let dongNames = [];
+  const drawChips = () => {
+    const names = [...new Set([...d.dongs, ...dongNames])];
+    chipBox.innerHTML = names.map(nm => `<button type="button" class="chip" data-dong="${esc(nm)}" aria-pressed="${d.dongs.includes(nm)}">${esc(nm)}</button>`).join('');
+    chipBox.querySelectorAll('[data-dong]').forEach(b => b.onclick = () => toggle(b.dataset.dong));
+    document.querySelectorAll('#mini .dong').forEach(el => el.setAttribute('data-c', d.dongs.includes(el.__data__.name) ? '1' : ''));
+  };
+  const toggle = nm => {
+    d.dongs = d.dongs.includes(nm) ? d.dongs.filter(x => x !== nm) : [...d.dongs, nm];
+    drawChips();
+  };
+  drawMiniMap(document.getElementById('mini'), v.key, new Map(d.dongs.map(x => [x, 1])), toggle).then(dongs => {
+    dongNames = dongs.map(x => x.name).sort((a, b) => a.localeCompare(b, 'ko'));
+    if (state.view === v) drawChips();
+  });
+
+  document.getElementById('f-photos').onchange = e => {
+    keep();
+    for (const file of e.target.files) {
+      if (!file.type.startsWith('image/')) continue;
+      const id = uid();
+      d.photos.push({ id, file, preview: URL.createObjectURL(file) });
+      if (!d.coverId) d.coverId = id;
+    }
+    renderForm(v);
+  };
+  panel.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => {
+    keep();
+    const [p] = d.photos.splice(+b.dataset.rm, 1);
+    if (!p.saved) URL.revokeObjectURL(p.preview);
+    if (d.coverId === p.id) d.coverId = d.photos[0]?.id || null;
+    renderForm(v);
+  });
+  panel.querySelectorAll('[data-cov]').forEach(b => b.onclick = () => { keep(); d.coverId = b.dataset.cov; renderForm(v); });
+
+  document.getElementById('tripform').onsubmit = async e => {
+    e.preventDefault(); keep();
+    const err = document.getElementById('f-err');
+    if (!d.start) { err.textContent = '시작일을 골라 주세요.'; err.hidden = false; return; }
+    if (d.end && d.end < d.start) { err.textContent = '종료일이 시작일보다 빨라요. 날짜를 확인해 주세요.'; err.hidden = false; return; }
+    const btn = document.getElementById('f-save');
+    btn.disabled = true; btn.textContent = '저장하는 중…';
+    // 새 사진: 원본 파일 그대로 + 썸네일
+    const skipped = [];
+    for (const p of d.photos.filter(p => !p.saved)) {
+      try {
+        const thumb = await makeThumb(p.file);
+        await store.put('photos', { id: p.id, full: p.file, thumb });
+        p.saved = true; URL.revokeObjectURL(p.preview);
+      } catch (x) { skipped.push(p.id); }
+    }
+    const photoIds = d.photos.filter(p => p.saved && !skipped.includes(p.id)).map(p => p.id);
+    // 수정하면서 뺀 사진은 저장소에서도 지움
+    if (editing) for (const id of editing.photoIds) if (!photoIds.includes(id)) await removePhoto(id);
+    const trip = {
+      id: editing ? editing.id : uid(), regionKey: v.key,
+      start: d.start, end: d.end || d.start, dongs: d.dongs, diary: d.diary.trim(),
+      photoIds, coverId: photoIds.includes(d.coverId) ? d.coverId : (photoIds[0] || null),
+      example: false, createdAt: editing ? editing.createdAt : Date.now()
+    };
+    await store.put('trips', trip);
+    state.trips = state.trips.filter(t => t.id !== trip.id).concat(trip);
+    state.selected = v.key;
+    go({ name: 'trip', id: trip.id, notice: skipped.length ? `사진 ${skipped.length}장은 열 수 없는 형식이라 빼고 저장했어요.` : '' });
+  };
+}
+
+async function removePhoto(id) {
+  for (const k of ['thumb', 'full']) { const u = urlCache.get(id + ':' + k); if (u) { URL.revokeObjectURL(u); urlCache.delete(id + ':' + k); } }
+  await store.del('photos', id);
+}
+async function deleteTrip(t) {
+  for (const id of t.photoIds) await removePhoto(id);
+  await store.del('trips', t.id);
+  state.trips = state.trips.filter(x => x.id !== t.id);
+}
+
+// 여행 상세 화면
+async function renderTrip(id) {
+  const t = state.trips.find(x => x.id === id);
+  if (!t) return go({ name: 'home' });
+  const r = state.regions.get(t.regionKey);
+  const n = tripsOf(t.regionKey).findIndex(x => x.id === t.id) + 1;
+  const ids = [t.coverId, ...t.photoIds.filter(i => i !== t.coverId)].filter(Boolean);
+  const v = state.view;
+  v.idx = Math.min(v.idx || 0, Math.max(0, ids.length - 1));
+  const [full, thumbs] = await Promise.all([ids.length ? photoURL(ids[v.idx], 'full') : '', Promise.all(ids.map(i => photoURL(i)))]);
+  if (state.view !== v) return;
+  panel.innerHTML = `
+    <div class="panel-head">${back(r.name + ' 기록으로')}<div><h2>${esc(r.name)} · ${ordinal(n)}${t.example ? '<span class="badge">예시</span>' : ''}</h2><div class="sub">${esc(dateRange(t))} · ${esc(nights(t.start, t.end))} · 사진 ${ids.length}장</div></div></div>
+    ${v.notice ? `<p class="notice" style="background: var(--accent-soft); color: var(--accent-ink)">${esc(v.notice)}</p>` : ''}
+    ${ids.length ? `<div class="hero"><img src="${full}" alt="${esc(r.name)} 여행 사진 ${v.idx + 1}" id="heroimg">
+      ${ids.length > 1 ? `<button type="button" class="nav prev" aria-label="이전 사진">‹</button><button type="button" class="nav next" aria-label="다음 사진">›</button>` : ''}
+      <span class="count">${v.idx + 1} / ${ids.length}</span></div>
+      <div class="strip">${thumbs.map((u, i) => `<button type="button" data-i="${i}" aria-label="사진 ${i + 1} 보기" aria-current="${i === v.idx}"><img src="${u}" alt=""></button>`).join('')}</div>`
+      : '<div class="empty">사진이 없는 여행이에요.</div>'}
+    ${t.dongs.length ? `<div class="chips">${t.dongs.map(x => `<span class="chip static">${esc(x)}</span>`).join('')}</div>` : ''}
+    <div style="display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--line); padding-top: 14px">
+      <div class="section-title">일기</div>
+      ${t.diary ? `<p class="diary">${esc(t.diary)}</p>` : '<p class="muted">일기를 아직 안 썼어요.</p>'}
+    </div>
+    <div class="actions"><button type="button" class="btn ghost" id="edit">수정하기</button><button type="button" class="btn danger" id="del">삭제하기</button></div>
+    <div id="confirmbox"></div>`;
+  document.getElementById('back').onclick = () => go({ name: 'region', key: t.regionKey });
+  document.getElementById('edit').onclick = () => go({ name: 'form', key: t.regionKey, id: t.id });
+  document.getElementById('del').onclick = () => {
+    document.getElementById('confirmbox').innerHTML = `<div class="confirm"><p style="margin: 0">이 여행 기록과 사진 ${ids.length}장을 지울까요? 되돌릴 수 없어요.</p>
+      <div class="actions"><button type="button" class="btn ghost" id="no">취소</button><button type="button" class="btn danger" id="yes">지우기</button></div></div>`;
+    document.getElementById('no').onclick = () => document.getElementById('confirmbox').innerHTML = '';
+    document.getElementById('yes').onclick = async () => { await deleteTrip(t); go({ name: 'region', key: t.regionKey }); };
+  };
+  const show = i => { v.idx = (i + ids.length) % ids.length; v.notice = ''; renderTrip(id); };
+  panel.querySelectorAll('[data-i]').forEach(b => b.onclick = () => show(+b.dataset.i));
+  panel.querySelector('.prev')?.addEventListener('click', () => show(v.idx - 1));
+  panel.querySelector('.next')?.addEventListener('click', () => show(v.idx + 1));
+  document.getElementById('heroimg')?.addEventListener('click', () => openLightbox(full));
+}
+
+function openLightbox(url) {
+  const lb = document.createElement('div');
+  lb.className = 'lightbox'; lb.setAttribute('role', 'dialog'); lb.setAttribute('aria-label', '사진 크게 보기');
+  lb.innerHTML = `<img src="${url}" alt="크게 본 사진"><button type="button" aria-label="닫기">✕</button>`;
+  const close = () => { lb.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  lb.onclick = e => { if (e.target !== lb.querySelector('img')) close(); };
+  document.addEventListener('keydown', onKey);
+  document.body.appendChild(lb);
+  lb.querySelector('button').focus();
+}
+
+/* ---------- 7. 처음 열었을 때 보여줄 예시 기록 (경주 두 번) ---------- */
+async function examplePhoto(label, hue) {
+  const c = document.createElement('canvas'); c.width = 1600; c.height = 1200;
+  const g = c.getContext('2d');
+  const grad = g.createLinearGradient(0, 0, 1600, 1200);
+  grad.addColorStop(0, `hsl(${hue}, 45%, 72%)`); grad.addColorStop(1, `hsl(${hue + 30}, 40%, 48%)`);
+  g.fillStyle = grad; g.fillRect(0, 0, 1600, 1200);
+  g.fillStyle = 'rgba(255,255,255,0.35)';
+  g.beginPath(); g.moveTo(0, 900); g.quadraticCurveTo(500, 620, 900, 820); g.quadraticCurveTo(1250, 980, 1600, 760); g.lineTo(1600, 1200); g.lineTo(0, 1200); g.fill();
+  g.fillStyle = '#FFFFFF'; g.font = '600 72px "IBM Plex Sans KR", sans-serif'; g.textAlign = 'center';
+  g.fillText(label, 800, 560);
+  const full = await new Promise(res => c.toBlob(res, 'image/jpeg', 0.9));
+  return { id: uid(), full, thumb: await makeThumb(full) };
+}
+async function seedExamples() {
+  let seeded = false;
+  try { seeded = localStorage.getItem('travel-map-seeded') === '1'; } catch (e) {}
+  if (seeded || state.trips.length) return;
+  const key = '47:경주시';
+  if (!state.regions.has(key)) return;
+  const specs = [
+    { start: '2025-05-17', end: '2025-05-18', dongs: ['황남동', '진현동'], n: 3, hue: 150, diary: '예시 기록이에요. 지우고 직접 기록해 보세요.' },
+    { start: '2026-03-03', end: '2026-03-05', dongs: ['황남동', '보문동', '감포읍'], n: 6, hue: 200, diary: '예시 기록이에요. 같은 경주라도 여행마다 따로 남고, 지도 색은 두 번 간 곳일수록 진해져요.' }
+  ];
+  for (const s of specs) {
+    const photoIds = [];
+    for (let i = 0; i < s.n; i++) {
+      const p = await examplePhoto(`예시 사진 ${i + 1}`, s.hue + i * 18);
+      await store.put('photos', p); photoIds.push(p.id);
+    }
+    const t = { id: uid(), regionKey: key, start: s.start, end: s.end, dongs: s.dongs, diary: s.diary, photoIds, coverId: photoIds[0], example: true, createdAt: Date.now() };
+    await store.put('trips', t); state.trips.push(t);
+  }
+  try { localStorage.setItem('travel-map-seeded', '1'); } catch (e) {}
+}
+
+/* ---------- 8. 시작 ---------- */
+document.getElementById('mode-color').onclick = () => setMode('color');
+document.getElementById('mode-photo').onclick = () => setMode('photo');
+function setMode(m) {
+  state.mapMode = m;
+  document.getElementById('mode-color').setAttribute('aria-pressed', m === 'color');
+  document.getElementById('mode-photo').setAttribute('aria-pressed', m === 'photo');
+  paintMap();
+}
+
+(async function start() {
+  render();
+  await store.open();
+  state.trips = await store.all('trips');
+  try { await loadMap(); } catch (e) {
+    document.getElementById('maploading').textContent = '지도 데이터를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.';
+    return;
+  }
+  await seedExamples();
+  render();
+  buildTerrain();
+})();
+</script>
+
+</body></html>
