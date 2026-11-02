@@ -82,7 +82,7 @@
 | 기술 | 고른 이유 |
 |---|---|
 | Vercel (무료 Hobby) | Next.js를 만든 회사의 서비스라 설정 없이 올라간다. GitHub에 push하면 자동으로 다시 배포한다 |
-| Render (무료 웹 서비스) | 내 컴퓨터처럼 `uvicorn` 서버를 그대로 띄운다. 싱가포르 지역을 고를 수 있다. 설정은 `render.yaml` 파일로 Git에 남긴다 |
+| Render (무료 웹 서비스) | 내 컴퓨터처럼 `uvicorn` 서버를 그대로 띄운다. Neon과 같은 싱가포르 지역을 고를 수 있다. 저장소가 공개라서 설정은 관리 화면에서 하고, 넣을 값은 7장 "배포 방법"에 적어 둔다 (서비스 이름이 곧 주소라 Git에 남기지 않는다) |
 | Neon 배포 전용 브랜치 | 개발 중에 넣는 기록과 배포한 앱의 기록이 섞이지 않는다 |
 | sharp (개발용) | 아이콘 그림(SVG) 하나로 크기별 PNG 아이콘을 만든다. 배포한 앱에는 들어가지 않는다 |
 
@@ -116,7 +116,7 @@
 ```
 휴대폰·컴퓨터 브라우저
    ├── 화면 ──▶ Vercel (https://<프로젝트>.vercel.app)
-   └── API 요청 ──▶ Render (https://<서비스>.onrender.com) ──▶ Neon 배포 전용 브랜치
+   └── API 요청 ──▶ Render (https://<서비스>.onrender.com) ──▶ Neon `deploy` 브랜치 (AWS 싱가포르)
                         └─ 지역 코드 검사: public/data/codes.json (저장소에 함께 있음)
 ```
 
@@ -264,7 +264,7 @@ CLAUDE.md 규칙에 따라 아래 계산은 화면과 떨어진 함수로 `src/l
 ### 보안
 - CORS는 `CORS_ORIGINS`에 적은 주소만 허락한다. 모든 주소(`*`)를 허락하지 않는다
 - v2.0(로그인) 전에는 배포 주소를 알면 누구나 기록을 보고, 고치고, 지울 수 있다. 그래서 배포 주소는 다른 사람에게 알려 주지 않고, 여행일기에 너무 개인적인 내용은 쓰지 않는다
-- 배포 주소는 README, 문서, 코드, `render.yaml`에 적지 않는다. 주소는 Vercel·Render 관리 화면에만 있다
+- 배포 주소는 README, 문서, 코드에 적지 않는다. 주소(서비스 이름)는 Vercel·Render 관리 화면에만 있다. GitHub 저장소는 공개다
 - 배포한 화면은 검색 사이트에 나오지 않게 한다 (`noindex`, COMPONENT_SPEC 11-2)
 
 ### 실행 방법 (이 PC)
@@ -276,11 +276,22 @@ CLAUDE.md 규칙에 따라 아래 계산은 화면과 떨어진 함수로 `src/l
 
 ### 배포 방법 (v1.0)
 
-- **Render (백엔드)**
-  - 설정은 저장소 루트의 `render.yaml`에 적는다: 시작 폴더 `backend/`, Neon과 가까운 지역, 무료, 상태 확인 `/health`
-  - 설치 명령: `pip install uv && uv sync --frozen --no-dev`
-  - 시작 명령: `uv run --no-sync python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-  - 비밀 값은 `render.yaml`에 적지 않고 "관리 화면에서 넣음"(`sync: false`)으로만 표시한다
+- **Neon (DB)**: 배포용은 `deploy` 브랜치(`production`에서 데이터째 복사, AWS 싱가포르). 내 컴퓨터의 개발용 앱은 `production` 브랜치를 쓴다
+- **Render (백엔드)**: 관리 화면에서 아래 값으로 웹 서비스를 만든다. 저장소가 공개라서 `render.yaml`은 쓰지 않는다
+
+  | Render 설정 | 값 |
+  |---|---|
+  | Name (서비스 이름 = 주소) | 짐작하기 어려운 이름. **문서에 적지 않는다** |
+  | Region | Singapore (Neon `deploy` 브랜치와 같은 AWS 싱가포르) |
+  | Branch | `main` |
+  | Root Directory | `backend` |
+  | Runtime | Python 3 |
+  | Build Command | `pip install uv && uv sync --frozen --no-dev` |
+  | Start Command | `uv run --no-sync python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+  | Instance Type | Free |
+  | Health Check Path | `/health` |
+  | 환경 변수 | `PYTHON_VERSION=3.12.10`, `DATABASE_URL`(비밀, `deploy` 브랜치), `CORS_ORIGINS`(Vercel 주소. Vercel 배포 전에는 넣지 않는다) |
+
 - **Vercel (화면)**
   - 저장소 루트를 그대로 쓴다. `NEXT_PUBLIC_API_URL`은 Production에만 넣는다
   - 값을 바꾸면 다시 배포해야 반영된다. 미리보기 배포 주소는 CORS로 허락하지 않는다
