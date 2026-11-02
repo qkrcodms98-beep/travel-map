@@ -121,6 +121,13 @@ interface MapViewProps {
   viewport: MapViewport | null;                   // 기억해 둔 확대 상태·위치. null이면 전국이 보이게
   onViewportChange: (viewport: MapViewport) => void;
   sidoBorders?: GeoJSON.MultiLineString;          // (v0.5) 시·도 경계선. 첫 화면이 지도 파일에서 topojson mesh로 만든다 (10-6)
+  labels?: MapLabel[];                            // (v0.5) 지도 위에 늘 보여 줄 이름. 첫 화면은 SIDO_LABELS를 넣는다 (F-18)
+}
+
+interface MapLabel {
+  text: string; // 예: "경기"
+  lon: number;  // 글자 가운데의 경도
+  lat: number;  // 글자 가운데의 위도
 }
 
 interface MapViewport {
@@ -161,6 +168,11 @@ interface RegionFeature {
 - 가장 작게는 전국이 한 화면에 보이고, 가장 크게는 서울의 구를 손가락으로 정확히 누를 수 있을 만큼 키운다 (PRD 성공 기준). 정확한 배율은 만들면서 정한다
 - **다른 화면에 갔다가 첫 화면으로 돌아오면 확대 상태와 위치를 그대로 둔다.** MapView는 화면을 옮기면 사라지므로, 확대 상태는 가장 바깥 레이아웃의 `MapViewportProvider`에 기억해 둔다
 - 새로고침하면 기억이 사라지고 전국이 보이는 처음 상태로 돌아간다
+
+**지도 위 이름 (F-18, v0.5)**
+- `labels`의 글자는 12px 굵게, ink 색에 흰 테두리(3px)를 둘러서 지형 무늬 위에서도 읽히게 한다
+- 확대 묶음(`<g>`) 바깥, 지도 위에 겹친 HTML 글자로 그려서 확대해도 **글자 크기는 그대로**이고 위치만 지도를 따라간다 (svg 안의 글자는 화면 폭에 따라 크기가 바뀐다)
+- 누를 수 없고(`pointer-events: none`), 화면 읽기에서 뺀다(`aria-hidden`). 지역마다 이미 이름이 있기 때문이다
 
 **지형 무늬 (F-12, v0.4)**
 - `"many"` 지역은 `fill="url(#terrain-pattern)"`으로 칠한다. 무늬는 `<svg>` 안 `<defs>`의 `<pattern id="terrain-pattern">` 하나다 (UI-04는 이 `fill`을 본다)
@@ -385,7 +397,7 @@ interface DateFieldsProps {
 |---|---|
 | 시작일 칸 이름 | 시작일 (필수) |
 | 종료일 칸 이름 | 종료일 |
-| 종료일 칸 아래 안내 | 비워 두면 당일치기로 저장돼요. |
+| 종료일 칸 아래 안내 | 종료일을 비워 두면 당일치기로 저장돼요. |
 
 ### 3-8. DiaryField — F-03, F-05
 
@@ -616,6 +628,13 @@ function formatTripLength(startDate: DateString, endDate: DateString | null): st
 // 동네 요약 (v0.5): [] → null, 3곳까지 "가동, 나동, 다동", 4곳 이상 "가동, 나동, 다동 외 2곳"
 function formatDongSummary(dongNames: string[]): string | null;
 
+// 시·도 이름 (v0.5, src/lib/sidoLabels.ts). 시·도마다 짧은 이름과 글자 위치(경도·위도)를 하나씩 적는다
+// 위치는 전국 화면에서 서로 겹치지 않게 직접 정한다 (무게중심으로 계산하면 경기 이름이 서울 위에 떨어지고, 대전·세종 이름이 겹친다)
+// 짧은 이름: 서울, 부산, 대구, 인천, 대전, 울산, 세종, 경기, 강원, 충북, 충남, 전북, 전남광주, 경북, 경남, 제주
+// (지도 데이터에서 광주·전남이 "전남광주통합특별시" 하나로 합쳐져 있다)
+interface SidoLabel extends MapLabel { sidoCode: string } // sidoCode: 지역 코드 앞 두 자리 (LOGIC-119가 시·도마다 하나씩인지 본다)
+const SIDO_LABELS: SidoLabel[];
+
 // 폼 값 → 저장할 값. 종료일 "" → null (3-6)
 function toTripInput(value: TripFormValue): TripInput;
 
@@ -682,6 +701,7 @@ function isRealDate(value: string): boolean;
 | `formatTripDates` | TripListItem, TripDetail | F-02, F-04 | v0.1 |
 | `formatTripLength` | TripListItem, TripDetail | F-17 | v0.5 |
 | `formatDongSummary` | TripListItem | F-17 | v0.5 |
+| `SIDO_LABELS` | HomePage | F-18 | v0.5 |
 | `toTripInput` | TripForm | F-03, F-05 | v0.1 |
 | `toFormValue` | EditTripPage | F-05 | v0.1 |
 | `getTodayInSeoul` | DateFields, Zod 규칙 | F-03, F-05 | v0.1 |
@@ -776,6 +796,7 @@ function isRealDate(value: string): boolean;
 | F-15 휴대폰 홈 화면 설치 | (부품 없음. 앱 설치 설정 파일로 처리) | v1.0 |
 | F-16 지도 확대·이동 | MapView, MapViewportProvider | v0.1 |
 | F-17 화면 디자인 | 모든 페이지와 부품, `app/globals.css`, `formatTripLength`, `formatDongSummary` (10장) | v0.5 |
+| F-18 시·도 이름 표시 | MapView (`labels`), HomePage, `SIDO_LABELS` | v0.5 |
 
 ## 9. 정한 것
 
@@ -905,6 +926,7 @@ function isRealDate(value: string): boolean;
 
 - 색: 0번은 surface, 1번은 visit-once, 2번 이상은 지형 무늬 (바탕 terrain-base)
 - 시·군·구 경계선(land-edge, 0.6px) 위에 시·도 경계선(sido-edge, 1px)을 한 겹 더 그린다. 지역 코드 앞 두 자리가 다른 이웃 사이에만 그린다 (topojson `mesh`). 이 선은 눌리지 않는다 (`pointer-events: none`)
+- 시·도 이름(F-18)은 3-2의 글자 규칙을 따른다
 - 키보드로 고른 지역은 ink 색 2px 테두리
 - `aria-label`, `data-color-stage`, `role`, `tabIndex`는 그대로다
 

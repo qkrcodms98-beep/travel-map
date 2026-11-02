@@ -1,16 +1,17 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MapView, type MapViewport } from "@/components/MapView";
+import { MapView, type MapLabel, type MapViewport } from "@/components/MapView";
 import type { RegionCode } from "@/types/region";
 import { FAKE_REGION_FEATURES } from "../../tests/fixtures/map";
 
 interface RenderOptions {
   visitCounts?: Record<RegionCode, number>;
   viewport?: MapViewport | null;
+  labels?: MapLabel[];
 }
 
 // 테스트마다 필요한 값만 바꿔 그린다
-function renderMap({ visitCounts = {}, viewport = null }: RenderOptions = {}) {
+function renderMap({ visitCounts = {}, viewport = null, labels }: RenderOptions = {}) {
   const onRegionClick = jest.fn<void, [RegionCode]>();
   const onViewportChange = jest.fn<void, [MapViewport]>();
   render(
@@ -20,6 +21,7 @@ function renderMap({ visitCounts = {}, viewport = null }: RenderOptions = {}) {
       onRegionClick={onRegionClick}
       viewport={viewport}
       onViewportChange={onViewportChange}
+      labels={labels}
     />,
   );
   return { onRegionClick, onViewportChange };
@@ -128,6 +130,38 @@ describe("MapView 누르기와 확대·이동", () => {
     expect(mapTransform()).toBe("translate(0,0) scale(1)");
     expect(regionA()).toBeInTheDocument();
     expect(regionB()).toBeInTheDocument();
+  });
+});
+
+describe("MapView 지도 위 이름 (v0.5)", () => {
+  // 가짜 지도 B(나구) 안의 한 점
+  const LABELS: MapLabel[] = [{ text: "테스트도", lon: 2, lat: 0.5 }];
+  // 이름 글자의 위치(지도 판 안의 %)와 글자 모양
+  const labelOf = () => {
+    const label = screen.getByText("테스트도");
+    return { label, left: parseFloat(label.style.left), top: parseFloat(label.style.top), className: label.className };
+  };
+
+  it("UI-109 '테스트도'가 보이고, 화면 읽기에서 빠지고, 누를 수 없다", () => {
+    renderMap({ labels: LABELS });
+    const { label } = labelOf();
+    expect(label.closest('[aria-hidden="true"]')).not.toBeNull();
+    expect(label.closest(".pointer-events-none")).not.toBeNull();
+  });
+
+  it("UI-110 확대하면 글자 위치는 확대 상태만큼 옮겨지고, 글자 크기는 그대로다", () => {
+    renderMap({ labels: LABELS, viewport: null });
+    const before = labelOf();
+    cleanup();
+
+    renderMap({ labels: LABELS, viewport: { scale: 2, x: 10, y: 20 } });
+    const after = labelOf();
+
+    // 지도 판(600×800) 위 위치 x → 2x + 10, y → 2y + 20
+    const toBoard = (percent: number, size: number) => (percent / 100) * size;
+    expect(toBoard(after.left, 600)).toBeCloseTo(toBoard(before.left, 600) * 2 + 10);
+    expect(toBoard(after.top, 800)).toBeCloseTo(toBoard(before.top, 800) * 2 + 20);
+    expect(after.className).toBe(before.className);
   });
 });
 

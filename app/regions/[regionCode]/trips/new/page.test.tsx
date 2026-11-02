@@ -47,7 +47,7 @@ describe("NewTripPage 화면", () => {
     expect(screen.getByRole("heading", { name: "새 여행 기록" })).toBeInTheDocument();
     expect(screen.getByLabelText("시작일 (필수)")).toBeInTheDocument();
     expect(screen.getByLabelText("종료일")).toHaveAccessibleDescription(
-      expect.stringContaining("비워 두면 당일치기로 저장돼요."),
+      expect.stringContaining("종료일을 비워 두면 당일치기로 저장돼요."),
     );
     expect(screen.getByLabelText("여행일기")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "저장" })).toBeInTheDocument();

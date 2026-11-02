@@ -14,6 +14,7 @@ import { calcCompletion } from "@/lib/calcCompletion";
 import { countVisits } from "@/lib/countVisits";
 import { REGION_AREAS } from "@/lib/regionAreas";
 import { REGION_CODES } from "@/lib/regionCodes";
+import { SIDO_LABELS } from "@/lib/sidoLabels";
 import type { RegionCode } from "@/types/region";
 import type { Trip } from "@/types/trip";
 
@@ -127,6 +128,7 @@ export default function HomePage() {
           <MapView
             regions={map.regions}
             sidoBorders={map.sidoBorders}
+            labels={SIDO_LABELS}
             visitCounts={visitCounts}
             onRegionClick={(regionCode) => router.push(`/regions/${regionCode}`)}
             viewport={viewport}

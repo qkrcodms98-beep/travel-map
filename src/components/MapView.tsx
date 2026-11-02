@@ -29,6 +29,13 @@ export interface RegionFeature {
   geometry: Geometry;
 }
 
+// 지도 위에 늘 보여 줄 이름 (v0.5, F-18)
+export interface MapLabel {
+  text: string; // 예: "경기"
+  lon: number; // 글자 가운데의 경도
+  lat: number; // 글자 가운데의 위도
+}
+
 export interface MapViewProps {
   regions: RegionFeature[];
   visitCounts: Record<RegionCode, number>;
@@ -36,6 +43,7 @@ export interface MapViewProps {
   viewport: MapViewport | null; // null이면 전국이 보이게
   onViewportChange: (viewport: MapViewport) => void;
   sidoBorders?: MultiLineString; // 시·도 경계선 (v0.5). 앞 두 자리가 다른 이웃 지역 사이의 선
+  labels?: MapLabel[]; // 지도 위 이름 (v0.5). 첫 화면은 SIDO_LABELS
 }
 
 // 지도를 그리는 판의 크기 (화면에서는 가로 폭에 맞춰 늘고 준다)
@@ -85,6 +93,7 @@ export function MapView({
   viewport,
   onViewportChange,
   sidoBorders,
+  labels = [],
 }: MapViewProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [transform, setTransform] = useState(() => toTransform(viewport));
@@ -274,6 +283,23 @@ export function MapView({
           )}
         </g>
       </svg>
+      {/* 지도 위 이름: svg 밖의 글자라서 확대해도 크기(12px)는 그대로이고, 위치만 확대 상태를 따라간다 (COMPONENT_SPEC 3-2) */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        {labels.map((label) => {
+          const point = projection([label.lon, label.lat]);
+          if (!point) return null;
+          const [x, y] = transform.apply(point);
+          return (
+            <span
+              key={label.text}
+              className="absolute -translate-x-1/2 -translate-y-1/2 text-xs font-bold whitespace-nowrap text-ink [text-shadow:0_0_2px_#fff,0_0_2px_#fff,0_0_3px_#fff,0_0_3px_#fff]"
+              style={{ left: `${(x / WIDTH) * 100}%`, top: `${(y / HEIGHT) * 100}%` }}
+            >
+              {label.text}
+            </span>
+          );
+        })}
+      </div>
       {/* 범례: 왼쪽 아래. "2번 이상" 견본은 지형 그림의 숲 부분을 보여 준다 */}
       <ul className="pointer-events-none absolute bottom-3 left-3 flex gap-3 rounded-xl bg-surface px-3 py-2 text-xs text-muted shadow-[0_8px_24px_rgba(24,33,43,0.08)]">
         {LEGEND.map(({ stage, label }) => (

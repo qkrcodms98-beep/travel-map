@@ -61,7 +61,7 @@ export function DateFields({ startDate, endDate, today, startDateError, endDateE
         </div>
       </div>
       <p id={`${id}-end-hint`} className="mt-2 text-[13px] text-muted">
-        비워 두면 당일치기로 저장돼요.
+        종료일을 비워 두면 당일치기로 저장돼요.
       </p>
     </section>
   );
