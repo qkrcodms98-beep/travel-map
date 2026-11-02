@@ -2,13 +2,12 @@ import { formatTripLength } from "@/lib/formatTripLength";
 
 // 여행 기간 글자 (TEST_CASES 3-5)
 describe("formatTripLength", () => {
-  // 당일치기는 날짜 글자에 이미 "(당일치기)"가 있어서 따로 쓰지 않는다
-  it("LOGIC-110 종료일이 없으면 null", () => {
-    expect(formatTripLength("2026-05-03", null)).toBeNull();
+  it('LOGIC-110 종료일이 없으면 "당일치기"', () => {
+    expect(formatTripLength("2026-05-03", null)).toBe("당일치기");
   });
 
-  it("LOGIC-111 종료일이 시작일과 같으면 null", () => {
-    expect(formatTripLength("2026-05-03", "2026-05-03")).toBeNull();
+  it('LOGIC-111 종료일이 시작일과 같으면 "당일치기"', () => {
+    expect(formatTripLength("2026-05-03", "2026-05-03")).toBe("당일치기");
   });
 
   it('LOGIC-112 3월 3일 ~ 5일이면 "2박 3일"', () => {

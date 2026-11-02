@@ -9,11 +9,11 @@ const withNumber = (trip: Trip, tripNumber: number): TripWithNumber => ({ ...tri
 const tripLink = () => screen.getByRole("link");
 
 describe("TripListItem", () => {
-  it("UI-23 T2(당일치기)는 '두 번째 여행' 아래에 '2026.06.01 (당일치기)'를 보여 준다", () => {
+  it("UI-23 T2(당일치기)는 '두 번째 여행' 아래에 '2026.06.01'을 보여 준다", () => {
     render(<TripListItem trip={withNumber(T2, 2)} href="/regions/99010/trips/t2" dongNames={[]} />);
 
     const number = screen.getByText("두 번째 여행");
-    const dates = screen.getByText("2026.06.01 (당일치기)");
+    const dates = screen.getByText("2026.06.01");
     // 번호가 먼저(위), 날짜가 나중(아래)
     expect(number.compareDocumentPosition(dates) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(tripLink()).toContainElement(number);
@@ -39,9 +39,17 @@ describe("TripListItem", () => {
     expect(dates.compareDocumentPosition(meta) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("UI-106 T2(당일치기)에 동네가 없으면 셋째 줄이 없다", () => {
+  it("UI-106 T2(당일치기)에 동네가 없으면 셋째 줄이 '당일치기'다", () => {
     render(<TripListItem trip={withNumber(T2, 2)} href="/regions/99010/trips/t2" dongNames={[]} />);
-    // 링크 안의 글자는 번호와 날짜뿐이다
-    expect(tripLink()).toHaveTextContent(/^두 번째 여행2026\.06\.01 \(당일치기\)$/);
+    // 링크 안의 글자는 번호, 날짜, 기간뿐이다
+    expect(tripLink()).toHaveTextContent(/^두 번째 여행2026\.06\.01당일치기$/);
+  });
+
+  it("UI-111 T2(당일치기)에 동네 '가동'이면 셋째 줄이 '당일치기 · 가동'이다", () => {
+    render(<TripListItem trip={withNumber(T2, 2)} href="/regions/99010/trips/t2" dongNames={["가동"]} />);
+    const meta = screen.getByText("당일치기 · 가동");
+    // 날짜 아래에 있다
+    const dates = screen.getByText("2026.06.01");
+    expect(dates.compareDocumentPosition(meta) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

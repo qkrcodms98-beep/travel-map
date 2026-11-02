@@ -31,4 +31,11 @@ describe("TripDetail", () => {
     render(<TripDetail trip={{ ...T3, tripNumber: 3 }} dongNames={[]} />);
     expect(screen.getByText("2박 3일")).toBeInTheDocument();
   });
+
+  it("UI-112 T2(당일치기)는 날짜 '2026.06.01' 아래에 '당일치기'가 보인다", () => {
+    render(<TripDetail trip={{ ...T2, tripNumber: 2 }} dongNames={[]} />);
+    const dates = screen.getByText("2026.06.01");
+    const length = screen.getByText("당일치기");
+    expect(dates.compareDocumentPosition(length) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });

@@ -103,7 +103,7 @@ describe("EditTripPage 저장", () => {
     expect(rows).toHaveLength(3);
     // 최신순: T2(06-01), T1(05-01), T3(04-01)
     expect(rows[0]).toHaveTextContent("세 번째 여행");
-    expect(rows[0]).toHaveTextContent("2026.06.01 (당일치기)"); // T2
+    expect(rows[0]).toHaveTextContent("2026.06.01"); // T2
     expect(rows[1]).toHaveTextContent("두 번째 여행");
     expect(rows[1]).toHaveTextContent("2026.05.01 ~ 05.02"); // T1
     expect(rows[2]).toHaveTextContent("첫 번째 여행");

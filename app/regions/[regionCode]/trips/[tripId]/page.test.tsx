@@ -46,11 +46,11 @@ async function openT2Detail() {
 }
 
 describe("TripDetailPage 보기", () => {
-  it("UI-70 T2 상세는 제목 '두 번째 여행', 날짜 '2026.06.01 (당일치기)', 버튼 '수정', '삭제'가 보인다", async () => {
+  it("UI-70 T2 상세는 제목 '두 번째 여행', 날짜 '2026.06.01', 버튼 '수정', '삭제'가 보인다", async () => {
     const { t2Id } = await openT2Detail();
 
     expect(await screen.findByRole("heading", { name: "두 번째 여행" })).toBeInTheDocument();
-    expect(screen.getByText("2026.06.01 (당일치기)")).toBeInTheDocument();
+    expect(screen.getByText("2026.06.01")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "수정" })).toHaveAttribute("href", `/regions/99010/trips/${t2Id}/edit`);
     expect(screen.getByRole("button", { name: "삭제" })).toBeInTheDocument();
   });

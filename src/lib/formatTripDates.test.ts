@@ -3,11 +3,11 @@ import { formatTripDates } from "@/lib/formatTripDates";
 // 여행 날짜 글자 (TEST_CASES 3-5)
 describe("formatTripDates", () => {
   it("LOGIC-44 종료일이 없으면 당일치기다", () => {
-    expect(formatTripDates("2026-05-03", null)).toBe("2026.05.03 (당일치기)");
+    expect(formatTripDates("2026-05-03", null)).toBe("2026.05.03");
   });
 
   it("LOGIC-45 종료일이 시작일과 같으면 당일치기다", () => {
-    expect(formatTripDates("2026-05-03", "2026-05-03")).toBe("2026.05.03 (당일치기)");
+    expect(formatTripDates("2026-05-03", "2026-05-03")).toBe("2026.05.03");
   });
 
   it("LOGIC-46 같은 해면 종료일에 연도를 빼고 쓴다", () => {

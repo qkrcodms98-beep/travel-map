@@ -616,14 +616,14 @@ function formatTripNumber(tripNumber: number): string;
 function formatPercent(percent: number): string;
 
 // 여행 날짜 글자
-// 당일치기 (종료일 null):  "2026.05.03 (당일치기)"
+// 당일치기 (종료일 null):  "2026.05.03"  (v0.5부터 날짜만. "당일치기"는 기간 글자에 쓴다)
 // 같은 해:                 "2026.05.03 ~ 05.04"
 // 해를 넘김:               "2025.12.31 ~ 2026.01.01"
-// 종료일이 시작일과 같음:  "2026.05.03 (당일치기)"
+// 종료일이 시작일과 같음:  "2026.05.03"
 function formatTripDates(startDate: DateString, endDate: DateString | null): string;
 
-// 여행 기간 (v0.5): 종료일이 없거나 시작일과 같으면 null (날짜 글자에 이미 "당일치기"가 있다). 그 밖에는 "2박 3일"
-function formatTripLength(startDate: DateString, endDate: DateString | null): string | null;
+// 여행 기간 (v0.5): 종료일이 없거나 시작일과 같으면 "당일치기", 그 밖에는 "2박 3일"
+function formatTripLength(startDate: DateString, endDate: DateString | null): string;
 
 // 동네 요약 (v0.5): [] → null, 3곳까지 "가동, 나동, 다동", 4곳 이상 "가동, 나동, 다동 외 2곳"
 function formatDongSummary(dongNames: string[]): string | null;
@@ -901,7 +901,7 @@ function isRealDate(value: string): boolean;
 **여행 카드 (TripListItem)**
 - 첫 줄: "두 번째 여행"(13px, accent-ink), 오른쪽에 › 그림
 - 둘째 줄: "2026.03.03 ~ 03.05"(18px, 굵게)
-- 셋째 줄: "2박 3일 · 황남동, 보덕동"(13px, muted). `formatTripLength`와 `formatDongSummary`로 만든다. 둘 중 없는 것은 빼고, 둘 다 없으면 셋째 줄이 없다
+- 셋째 줄: "2박 3일 · 황남동, 보덕동" / "당일치기 · 황남동"(13px, muted). `formatTripLength`와 `formatDongSummary`로 만든다. 기간은 늘 있고, 동네가 없으면 기간만 쓴다
 - 카드 전체가 링크다
 
 **새 여행 기록 · 여행 수정**
@@ -914,7 +914,7 @@ function isRealDate(value: string): boolean;
 
 **여행 상세**
 1. PageHeader (제목 "두 번째 여행", 부제 지역 이름)
-2. 흰 카드 하나 안에: 날짜(26px, 굵게) → 기간 "2박 3일"(muted, `formatTripLength`. 없으면 뺀다) → "다녀온 동네" 칩(accent-soft 바탕, 핀 그림) → 구분선 → "여행일기" 작은 제목 → 일기(고운바탕, 줄바꿈 그대로, 접지 않음)
+2. 흰 카드 하나 안에: 날짜(26px, 굵게) → 기간 "2박 3일" 또는 "당일치기"(muted, `formatTripLength`) → "다녀온 동네" 칩(accent-soft 바탕, 핀 그림) → 구분선 → "여행일기" 작은 제목 → 일기(고운바탕, 줄바꿈 그대로, 접지 않음)
 3. 아래에 "수정"(보조), "삭제"(위험) 버튼을 나란히
 4. ConfirmDialog: 뒤 화면을 어둡게(검정 40%) 하고, 휴대폰에서는 아래에서 올라오는 흰 카드(위 모서리 24px), 넓은 화면에서는 가운데 카드로 보여 준다. 버튼은 "취소"(보조), "삭제"(위험)
 

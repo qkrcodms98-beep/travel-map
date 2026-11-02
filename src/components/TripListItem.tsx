@@ -13,17 +13,17 @@ interface TripListItemProps {
 }
 
 export function TripListItem({ trip, href, dongNames }: TripListItemProps) {
-  // 기간과 동네 중 있는 것만 " · "로 잇는다. 둘 다 없으면 셋째 줄이 없다
-  const meta = [formatTripLength(trip.startDate, trip.endDate), formatDongSummary(dongNames)]
-    .filter((text) => text !== null)
-    .join(" · ");
+  // 기간은 늘 있고, 동네가 있으면 " · "로 잇는다
+  const dongSummary = formatDongSummary(dongNames);
+  const length = formatTripLength(trip.startDate, trip.endDate);
+  const meta = dongSummary ? `${length} · ${dongSummary}` : length;
 
   return (
     <Link href={href} className="flex items-start justify-between gap-2 rounded-[18px] bg-surface p-4">
       <span className="min-w-0">
         <span className="block text-[13px] font-semibold text-accent-ink">{formatTripNumber(trip.tripNumber)}</span>
         <span className="block text-lg font-bold tabular-nums">{formatTripDates(trip.startDate, trip.endDate)}</span>
-        {meta && <span className="block text-[13px] text-muted">{meta}</span>}
+        <span className="block text-[13px] text-muted">{meta}</span>
       </span>
       <svg
         width="18"

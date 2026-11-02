@@ -20,7 +20,7 @@ export function TripDetail({ trip, dongNames }: TripDetailProps) {
       <p className="text-[26px] leading-tight font-bold tracking-tight tabular-nums">
         {formatTripDates(trip.startDate, trip.endDate)}
       </p>
-      {length && <p className="mt-1 text-muted">{length}</p>}
+      <p className="mt-1 text-muted">{length}</p>
 
       <h2 className={`mt-5 mb-2 ${SMALL_HEADING}`}>다녀온 동네</h2>
       {dongNames.length > 0 ? (

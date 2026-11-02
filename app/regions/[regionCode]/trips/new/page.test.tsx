@@ -99,7 +99,7 @@ describe("NewTripPage 저장", () => {
     expect(rows).toHaveLength(2);
     // 새 여행이 가장 늦게 시작했으므로 맨 위, 두 번째 여행
     expect(rows[0]).toHaveTextContent("두 번째 여행");
-    expect(rows[0]).toHaveTextContent("2026.10.01 (당일치기)");
+    expect(rows[0]).toHaveTextContent("2026.10.01");
   });
 
   it("UI-55 '취소'를 누르면 지역 화면으로 돌아가고 저장하지 않는다", async () => {
