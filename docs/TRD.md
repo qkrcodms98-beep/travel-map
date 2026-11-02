@@ -1,4 +1,4 @@
-# TRD - 나만의 여행 지도 (초안)
+# TRD - 트레이스 (초안)
 
 > 기준 문서: [IDEA.md](IDEA.md), [PRD.md](PRD.md). 이 문서와 IDEA.md가 다르면 IDEA.md를 따른다.
 > 범위: v0.1 ~ v1.0. 기능 ID(F-01 등)는 PRD.md를 따른다.
@@ -40,6 +40,11 @@
 | 타입 힌트 | 파이썬에서 변수와 함수의 값 종류를 적어 두는 것. TypeScript의 타입과 비슷하다 |
 | 환경 변수 | 코드 밖(`.env` 파일 등)에 두는 설정 값. 주소나 비밀번호처럼 코드에 적으면 안 되는 값을 넣는다 |
 | CORS | 브라우저가 다른 주소(예: 3000번 → 8000번)의 서버를 부를 때, 그 서버가 허락했는지 확인하는 규칙 |
+| 웹 앱 설치 (PWA) | 웹사이트를 앱스토어 없이 홈 화면에 아이콘으로 설치해 앱처럼 여는 방법 (v1.0) |
+| 웹 앱 설명서 (manifest) | 앱 이름, 아이콘, 바탕색, "주소창 없이 열기"를 휴대폰에 알려 주는 파일 (v1.0) |
+| 서비스 워커 | 인터넷 없이 열기·알림을 맡는 파일. 이 앱은 만들지 않는다 |
+| 서버 잠들기 | 무료 서버가 한동안 안 쓰이면 꺼지고, 다음 요청 때 다시 켜지는 것 (다시 켜지는 데 1분쯤) |
+| Neon 브랜치 | 같은 DB를 복사해 따로 쓰는 갈래. 하나를 고쳐도 다른 갈래는 그대로다 (v1.0) |
 | 의존성 주입 (dependency) | FastAPI에서 "지금 시각", "저장소" 같은 재료를 바깥에서 넣어 주는 방식. 테스트에서 가짜로 바꿔 끼울 수 있다 |
 
 ## 2. 기술 스택과 고른 이유
@@ -72,6 +77,15 @@
 | Alembic | DB 표를 만들거나 바꾼 기록을 파일로 남겨, 같은 순서로 DB에 적용한다 (v0.3) |
 | psycopg | 파이썬에서 Postgres에 연결한다 (v0.3) |
 
+### 배포 (v1.0)
+
+| 기술 | 고른 이유 |
+|---|---|
+| Vercel (무료 Hobby) | Next.js를 만든 회사의 서비스라 설정 없이 올라간다. GitHub에 push하면 자동으로 다시 배포한다 |
+| Render (무료 웹 서비스) | 내 컴퓨터처럼 `uvicorn` 서버를 그대로 띄운다. 싱가포르 지역을 고를 수 있다. 설정은 `render.yaml` 파일로 Git에 남긴다 |
+| Neon 배포 전용 브랜치 | 개발 중에 넣는 기록과 배포한 앱의 기록이 섞이지 않는다 |
+| sharp (개발용) | 아이콘 그림(SVG) 하나로 크기별 PNG 아이콘을 만든다. 배포한 앱에는 들어가지 않는다 |
+
 ## 3. 버전별 구조
 
 | 버전 | 기록 저장 위치 | 화면이 기록을 읽고 쓰는 방법 |
@@ -96,6 +110,17 @@
 - 두 프로그램은 따로 켠다. 개발할 때는 터미널 두 개에서 각각 실행한다 (CLAUDE.md "자주 쓰는 명령")
 - 화면은 `NEXT_PUBLIC_API_URL`(개발: `http://localhost:8000`) 뒤에 API_SPEC의 주소를 붙여 부른다. 예: `http://localhost:8000/api/trips`
 - 주소가 달라서(3000번 → 8000번) 브라우저가 CORS 확인을 한다. 백엔드는 프런트 주소만 허락한다 (7장)
+
+### 배포한 뒤 (v1.0)
+
+```
+휴대폰·컴퓨터 브라우저
+   ├── 화면 ──▶ Vercel (https://<프로젝트>.vercel.app)
+   └── API 요청 ──▶ Render (https://<서비스>.onrender.com) ──▶ Neon 배포 전용 브랜치
+                        └─ 지역 코드 검사: public/data/codes.json (저장소에 함께 있음)
+```
+
+- 실제 주소는 문서와 저장소에 적지 않는다 (7장 보안)
 
 ### 백엔드 폴더 구조 (처음 계획)
 
@@ -225,11 +250,12 @@ CLAUDE.md 규칙에 따라 아래 계산은 화면과 떨어진 함수로 `src/l
 
 ### 환경 변수
 
-| 이름 | 어디에 | 값 | 버전 |
-|---|---|---|---|
-| `NEXT_PUBLIC_API_URL` | 프런트 `.env.local` | 백엔드 주소. 개발: `http://localhost:8000` | v0.2 |
-| `CORS_ORIGINS` | `backend/.env` | 백엔드를 부를 수 있는 화면 주소. 개발 기본값: `http://localhost:3000` | v0.2 |
-| `DATABASE_URL` | `backend/.env` | Neon DB 주소. psycopg를 쓰므로 `postgresql+psycopg://`로 시작한다 | v0.3 |
+| 이름 | 개발 | 배포 (v1.0) | 값 | 비밀? | 버전 |
+|---|---|---|---|---|---|
+| `NEXT_PUBLIC_API_URL` | 프런트 `.env.local` | Vercel 관리 화면 (Production) | 백엔드 주소. 개발: `http://localhost:8000`, 배포: Render 주소 | 아님 (브라우저에 보임) | v0.2 |
+| `CORS_ORIGINS` | `backend/.env` | Render 관리 화면 | 백엔드를 부를 수 있는 화면 주소. 개발 기본값: `http://localhost:3000`, 배포: Vercel 주소 (끝에 `/` 없이) | 아님 | v0.2 |
+| `DATABASE_URL` | `backend/.env` (지금 DB) | Render 관리 화면 (**배포 전용 브랜치** 주소) | Neon DB 주소. psycopg를 쓰므로 `postgresql+psycopg://`로 시작한다 | **비밀** | v0.3 |
+| `DATABASE_URL_TEST` | `backend/.env` | 넣지 않는다 | 테스트용 DB 주소 | 비밀 | v0.3 |
 
 - `NEXT_PUBLIC_`으로 시작하는 값은 브라우저에 그대로 보인다. 백엔드 주소만 넣고 비밀번호나 DB 주소는 절대 넣지 않는다
 - DB 주소는 `backend/.env`의 `DATABASE_URL`에만 넣는다. 코드에 적거나 출력하지 않는다
@@ -237,13 +263,31 @@ CLAUDE.md 규칙에 따라 아래 계산은 화면과 떨어진 함수로 `src/l
 
 ### 보안
 - CORS는 `CORS_ORIGINS`에 적은 주소만 허락한다. 모든 주소(`*`)를 허락하지 않는다
-- v2.0(로그인) 전에는 배포 주소를 알면 누구나 기록을 보고 고칠 수 있다. 그래서 연습용 기록만 넣는다
+- v2.0(로그인) 전에는 배포 주소를 알면 누구나 기록을 보고, 고치고, 지울 수 있다. 그래서 배포 주소는 다른 사람에게 알려 주지 않고, 여행일기에 너무 개인적인 내용은 쓰지 않는다
+- 배포 주소는 README, 문서, 코드, `render.yaml`에 적지 않는다. 주소는 Vercel·Render 관리 화면에만 있다
+- 배포한 화면은 검색 사이트에 나오지 않게 한다 (`noindex`, COMPONENT_SPEC 11-2)
 
 ### 실행 방법 (이 PC)
 - 이 PC는 `Scripts` 폴더의 `.exe` 실행이 막혀 있어서 `uvicorn`, `pytest`를 바로 부르지 못한다. 항상 `python -m` 형태로 실행한다
 - 백엔드 서버 (`backend/`에서): `uv run python -m uvicorn app.main:app --reload --port 8000`
 - 백엔드 테스트 (`backend/`에서): `uv run python -m pytest`
 - v0.3 DB 표 적용 (`backend/`에서): `uv run python -m alembic upgrade head`
+- v1.0 아이콘 다시 만들기 (프로젝트 루트에서): `npm run icons:build`
+
+### 배포 방법 (v1.0)
+
+- **Render (백엔드)**
+  - 설정은 저장소 루트의 `render.yaml`에 적는다: 시작 폴더 `backend/`, Neon과 가까운 지역, 무료, 상태 확인 `/health`
+  - 설치 명령: `pip install uv && uv sync --frozen --no-dev`
+  - 시작 명령: `uv run --no-sync python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+  - 비밀 값은 `render.yaml`에 적지 않고 "관리 화면에서 넣음"(`sync: false`)으로만 표시한다
+- **Vercel (화면)**
+  - 저장소 루트를 그대로 쓴다. `NEXT_PUBLIC_API_URL`은 Production에만 넣는다
+  - 값을 바꾸면 다시 배포해야 반영된다. 미리보기 배포 주소는 CORS로 허락하지 않는다
+- **DB 표 바꾸기 (Alembic)**
+  - 배포용 DB에는 Render가 자동으로 적용하지 않는다
+  - 표를 바꾼 버전을 배포하기 전에 내 컴퓨터에서 적용한다. 이때 배포용 주소는 그 터미널에서만 잠깐 쓰고 파일에 저장하지 않는다
+  - v1.0은 표가 바뀌지 않는다. 배포 전용 브랜치가 지금 DB의 표를 그대로 복사한다
 
 ## 8. 백엔드 구현 메모 (API_SPEC을 지키려면)
 
@@ -266,8 +310,7 @@ FastAPI와 Pydantic의 기본 동작이 API_SPEC과 다른 곳이 있다. 아래
 
 ## 9. 정해야 할 것
 
-- 배포할 곳 (v1.0). 프런트(Next.js)와 백엔드(FastAPI)를 각각 어디에 올릴지
-- 휴대폰 홈 화면 설치 방식 (v1.0, 웹 앱 설치 기능)
+- (정함) 배포할 곳과 휴대폰 홈 화면 설치 방식은 2장 "배포", 7장 "배포 방법", COMPONENT_SPEC 11장에 적었다
 - 경계 데이터를 줄이는 정도. 작은 지역(서울의 구)도 모양이 알아볼 수 있게 남는지 보고 정한다
 - 시·군·구 파일을 줄였을 때 실제 크기 (변환 후 6장에 적는다)
 

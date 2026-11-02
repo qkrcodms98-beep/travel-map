@@ -1,4 +1,4 @@
-# CLAUDE.md - 나만의 여행 지도
+# CLAUDE.md - 트레이스 (나만의 여행 지도)
 
 ## 프로젝트 개요
 우리나라 시·군·구 지도에 내 여행을 기록하고, 다닐수록 지도가 위성사진처럼 채워지는 개인 여행 앱 (학습용)
@@ -83,6 +83,7 @@
 ### 프런트엔드 (프로젝트 루트에서)
 - 개발 서버: npm run dev (http://localhost:3000)
 - 테스트: npm test
+- 앱 아이콘 다시 만들기: npm run icons:build (원본 public/icons/icon.svg)
 
 ### 백엔드 (backend/ 폴더에서)
 - 이 PC는 Scripts 폴더의 .exe 실행이 막혀 있으므로 항상 `python -m` 형태로 실행한다

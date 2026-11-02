@@ -1,4 +1,4 @@
-# COMPONENT_SPEC - 나만의 여행 지도 (초안)
+# COMPONENT_SPEC - 트레이스 (초안)
 
 > 기준 문서: [IDEA.md](IDEA.md), [PRD.md](PRD.md), [TRD.md](TRD.md), [DATA_MODEL.md](DATA_MODEL.md), [API_SPEC.md](API_SPEC.md). 이 문서와 IDEA.md가 다르면 IDEA.md를 따른다.
 > 범위: v0.1 ~ v1.0. 기능 ID(F-01 등)는 PRD.md를 따른다.
@@ -760,7 +760,7 @@ function isRealDate(value: string): boolean;
 
 | 곳 | 문구 |
 |---|---|
-| 브라우저 탭 제목 | 나만의 여행 지도 |
+| 브라우저 탭 제목 | 트레이스 (v1.0부터. 그 전에는 "나만의 여행 지도") |
 | 지도의 각 지역 (화면 읽기 프로그램용 이름) | 지역 이름 (예: "대구광역시 군위군") |
 | 지역 화면의 새 여행 버튼 | 새 여행 기록 |
 | 다른 화면으로 가는 버튼 | 지도로 가기 / 지역 화면으로 / 다시 시도 |
@@ -792,8 +792,8 @@ function isRealDate(value: string): boolean;
 | F-11 동네 선택 | DongPicker, TripDetail의 동네 표시 | v0.4 |
 | F-12 지형 무늬 색칠 | MapView (`"many"` 단계를 무늬로 그림) | v0.4 |
 | F-13 지도 완성도 | CompletionBadge, `calcCompletion`, `formatPercent` | v0.4 |
-| F-14 배포 | (부품 없음) | v1.0 |
-| F-15 휴대폰 홈 화면 설치 | (부품 없음. 앱 설치 설정 파일로 처리) | v1.0 |
+| F-14 배포 | (부품 없음. 검색에 안 나오게 하는 설정은 RootLayout metadata, 11-2) | v1.0 |
+| F-15 휴대폰 홈 화면 설치 | `app/manifest.ts`, RootLayout metadata, `public/icons/` (11장) | v1.0 |
 | F-16 지도 확대·이동 | MapView, MapViewportProvider | v0.1 |
 | F-17 화면 디자인 | 모든 페이지와 부품, `app/globals.css`, `formatTripLength`, `formatDongSummary` (10장) | v0.5 |
 | F-18 시·도 이름 표시 | MapView (`labels`), HomePage, `SIDO_LABELS` | v0.5 |
@@ -886,7 +886,7 @@ function isRealDate(value: string): boolean;
 ### 10-5. 화면별 배치
 
 **첫 화면** (위에서부터)
-1. 제목 "나만의 여행 지도" (`<h1>`)
+1. 제목 "트레이스" (`<h1>`), 바로 아래 작은 회색 글씨 "나만의 여행 지도" (15px, muted). v1.0부터 (그 전에는 제목이 "나만의 여행 지도")
 2. 숫자 카드: 첫 줄에 "다녀온 시·군·구 `6 / 전체 수`"와 "여행 `9번`"을 나란히, 둘째 줄에 지도 완성도 카드(3-3)를 가로로 꽉 차게 막대와 함께 둔다. 여행 목록을 다 불러온 뒤에만 보여 준다 (3-3과 같은 이유)
    - 다녀온 시·군·구 = `countVisits()` 결과의 지역 수, 전체 수 = `REGION_CODES`의 개수
    - 여행 = 여행 목록의 개수
@@ -934,3 +934,35 @@ function isRealDate(value: string): boolean;
 
 - 5·6장의 모든 문구, 버튼 이름, 화면 읽기용 이름. 예외는 "‹ 뒤로" 글자가 그림으로 바뀌는 것 하나다 (3-4, TEST_CASES UI-30)
 - 주소, 동작, 계산 결과
+
+## 11. 휴대폰 홈 화면 설치 (v1.0) — F-15
+
+앱 이름은 "트레이스"다. 서비스 워커(오프라인, 알림)는 만들지 않는다 (PRD 5장).
+
+### 11-1. 웹 앱 설명서 (`app/manifest.ts`)
+
+Next.js가 `/manifest.webmanifest` 주소로 내보낸다.
+
+| 항목 | 값 |
+|---|---|
+| 이름 `name` | 트레이스 |
+| 짧은 이름 `short_name` (홈 화면 아이콘 아래 글자) | 트레이스 |
+| 설명 `description` | 나만의 여행 지도 |
+| 시작 주소 `start_url` | `/` |
+| 여는 방식 `display` | `standalone` (주소창 없이) |
+| 바탕색 `background_color`, 테마색 `theme_color` | `#F3F5F7` (bg) |
+| 아이콘 | `/icons/icon-192.png`(192px), `/icons/icon-512.png`(512px). 512px는 안드로이드 모양 맞춤(`purpose: "maskable"`)용으로 한 번 더 적는다 |
+
+### 11-2. RootLayout metadata (`app/layout.tsx`)
+
+- 브라우저 탭 제목: "트레이스"
+- 아이폰 홈 화면 앱(`appleWebApp`): 켬, 이름 "트레이스", 상태 표시줄은 기본값(밝은 화면)
+- 아이콘: 브라우저 탭은 `/icons/icon.svg`, 아이폰은 `/icons/apple-touch-icon.png`(180px). Next.js 기본 `app/favicon.ico`는 지운다
+- 검색 사이트에 나오지 않게 한다: `robots`를 `index: false, follow: false`로 둔다 (F-14, TRD 7장 보안)
+
+### 11-3. 아이콘
+
+- 모양: 정사각형 초록(accent `#4E7D3A`) 바탕 가운데에 흰 지도 핀. 핀 구멍은 초록
+- 핀은 가운데 60% 안에만 그린다. 안드로이드가 동그라미나 둥근 사각형으로 잘라도 핀이 잘리지 않는다
+- 원본은 `public/icons/icon.svg` 하나다. PNG 3개(`icon-192.png`, `icon-512.png`, `apple-touch-icon.png`)는 `npm run icons:build`(`scripts/icons/build.ts`, sharp 사용)가 원본에서 만든다
+- 바꾸는 방법: `icon.svg`를 다른 그림으로 바꾸고 `npm run icons:build`를 다시 실행한다. 휴대폰은 설치할 때 아이콘을 저장해 두므로, 바뀐 아이콘을 보려면 홈 화면 앱을 지우고 다시 설치해야 할 수 있다
