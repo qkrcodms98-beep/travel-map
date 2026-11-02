@@ -22,8 +22,13 @@ const gowun = Gowun_Batang({
 });
 
 export const metadata: Metadata = {
-  title: "나만의 여행 지도",
+  title: "트레이스",
   description: "우리나라 시·군·구 지도에 내 여행을 기록하는 앱",
+  // 아이폰 홈 화면에 설치했을 때의 이름과 모양 (COMPONENT_SPEC 11-2)
+  appleWebApp: { capable: true, title: "트레이스", statusBarStyle: "default" },
+  icons: { icon: "/icons/icon.svg", apple: "/icons/apple-touch-icon.png" },
+  // 배포 주소를 알리지 않으므로 검색 사이트에도 나오지 않게 한다 (TRD 7장 보안)
+  robots: { index: false, follow: false },
 };
 
 // 화면 끝(노치 아래)까지 쓰고, 안전 영역 여백은 globals.css가 준다 (COMPONENT_SPEC 10-4)

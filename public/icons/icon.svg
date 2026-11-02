@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- 트레이스 앱 아이콘 원본 (COMPONENT_SPEC 11-3). 바꾼 뒤 npm run icons:build -->
+  <!-- 초록 바탕은 정사각형 전체, 핀은 가운데 60% 안 (안드로이드가 둥글게 잘라도 핀이 남는다) -->
+  <rect width="512" height="512" fill="#4E7D3A" />
+  <path d="M256 392C256 392 156 292 156 220a100 100 0 0 1 200 0c0 72-100 172-100 172Z" fill="#FFFFFF" />
+  <circle cx="256" cy="220" r="40" fill="#4E7D3A" />
+</svg>

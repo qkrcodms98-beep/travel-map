@@ -164,3 +164,14 @@ describe("HomePage 숫자 카드 (v0.5)", () => {
     expect(screen.queryByText("여행")).not.toBeInTheDocument();
   });
 });
+
+describe("HomePage 앱 이름 (v1.0)", () => {
+  it("UI-115 제목(h1) '트레이스' 아래에 '나만의 여행 지도'가 보인다", async () => {
+    renderHome();
+    await regionA();
+
+    const title = screen.getByRole("heading", { level: 1, name: "트레이스" });
+    const subtitle = screen.getByText("나만의 여행 지도");
+    expect(title.compareDocumentPosition(subtitle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});

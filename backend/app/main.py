@@ -14,7 +14,7 @@ def health() -> dict[str, str]:
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="나만의 여행 지도 API")
+    app = FastAPI(title="트레이스 API")
 
     # 정해 둔 화면 주소만 이 API를 부를 수 있다 (TRD 7장)
     app.add_middleware(

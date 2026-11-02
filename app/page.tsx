@@ -97,7 +97,11 @@ export default function HomePage() {
 
   return (
     <main>
-      <h1 className="pt-6 pb-4 text-[28px] font-bold tracking-tight">나만의 여행 지도</h1>
+      {/* 앱 이름과 부제 (COMPONENT_SPEC 10-5) */}
+      <div className="pt-6 pb-4">
+        <h1 className="text-[28px] font-bold tracking-tight">트레이스</h1>
+        <p className="text-[15px] text-muted">나만의 여행 지도</p>
+      </div>
       {/* 숫자 카드는 여행 목록을 다 불러온 뒤에만 보여 준다 (COMPONENT_SPEC 3-3, 10-5) */}
       {trips && (
         <div className="mb-4 grid grid-cols-2 gap-2">

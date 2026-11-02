@@ -28,7 +28,13 @@ describe("RootLayout", () => {
     expect(content.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("UI-92 브라우저 탭 제목은 '나만의 여행 지도'다", () => {
-    expect(metadata.title).toBe("나만의 여행 지도");
+  it("UI-92 브라우저 탭 제목은 '트레이스'다", () => {
+    expect(metadata.title).toBe("트레이스");
+  });
+
+  it("UI-114 아이폰 홈 화면 앱 켬, 이름 '트레이스', 아이폰 아이콘, 검색 사이트에 나오지 않음", () => {
+    expect(metadata.appleWebApp).toEqual(expect.objectContaining({ capable: true, title: "트레이스" }));
+    expect(metadata.icons).toEqual(expect.objectContaining({ apple: "/icons/apple-touch-icon.png" }));
+    expect(metadata.robots).toEqual(expect.objectContaining({ index: false }));
   });
 });
