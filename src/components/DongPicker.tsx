@@ -30,7 +30,7 @@ export function DongPicker({ options, selected, error, onChange }: DongPickerPro
             // 체크 상자는 그대로 두고(화면 읽기용) 눈에는 칩만 보인다. 고르면 초록 바탕 + ✓
             <label
               key={option.code}
-              className={`inline-flex min-h-10 cursor-pointer items-center gap-1 rounded-full border px-3.5 text-sm font-medium has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent ${
+              className={`inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-full border px-3.5 text-sm font-medium has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent ${
                 checked ? "border-accent bg-accent text-white" : "border-line bg-surface text-ink"
               }`}
             >

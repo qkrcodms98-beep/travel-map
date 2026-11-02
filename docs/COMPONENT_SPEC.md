@@ -869,7 +869,7 @@ function isRealDate(value: string): boolean;
 - 본문 폭은 최대 640px이고 가운데에 둔다. 양옆 여백은 16px이다
 - 안전 영역: `viewport-fit=cover`로 화면 끝까지 쓰고, 위·아래·양옆에 `env(safe-area-inset-*)`만큼 여백을 더한다
 - 카드: 흰 바탕, 그림자 없음. 큰 카드는 모서리 24px·안쪽 여백 20px, 여행 카드는 모서리 18px·안쪽 여백 16px
-- 누르는 곳은 모두 44px 이상이다
+- 누르는 곳은 모두 44px 이상이다. 문장 속 글자 링크(맨 아래 출처 링크)는 예외다 (글자 크기 그대로 둔다)
 - 버튼은 세 가지다 (`globals.css`의 `btn-primary`, `btn-secondary`, `btn-danger`)
 
 | 종류 | 모양 | 쓰는 곳 |
@@ -878,7 +878,7 @@ function isRealDate(value: string): boolean;
 | 보조 | 투명 바탕, line 테두리 | 취소, 수정, 다시 시도 |
 | 위험 | 투명 바탕, danger 글자, line 테두리 | 삭제 |
 
-- 칩: 높이 40px, 모서리를 끝까지 둥글게. 고르면 accent 바탕에 흰 글자와 ✓
+- 칩: 높이 44px, 모서리를 끝까지 둥글게. 고르면 accent 바탕에 흰 글자와 ✓
 - 입력 칸: 높이 48px, 모서리 12px, line 테두리
 - 키보드로 옮겨 간 곳에는 accent 색 2px 테두리를 보여 준다
 - 기기에서 "동작 줄이기"를 켜 두었으면 움직임 효과를 끈다
