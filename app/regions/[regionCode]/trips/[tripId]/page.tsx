@@ -12,6 +12,7 @@ import { useRegionTrip } from "@/components/useRegionTrip";
 import { getDongNames } from "@/lib/dongCodes";
 import { formatTripNumber } from "@/lib/formatTripNumber";
 import { getErrorMessage } from "@/lib/getErrorMessage";
+import { getRegionName } from "@/lib/regionCodes";
 import { errorCodeOf } from "@/lib/tripStoreError";
 
 // 여행 상세 화면 (COMPONENT_SPEC 3-11-1)
@@ -58,12 +59,15 @@ export default function TripDetailPage() {
 
   return (
     <main>
-      <PageHeader title={formatTripNumber(trip.tripNumber)} backHref={regionHref} />
+      <PageHeader title={formatTripNumber(trip.tripNumber)} backHref={regionHref} subtitle={getRegionName(regionCode)} />
       <TripDetail trip={trip} dongNames={getDongNames(trip.dongCodes)} />
-      <Link href={`${regionHref}/trips/${trip.id}/edit`} className="m-4 inline-block rounded border px-3 py-1">
-        수정
-      </Link>
-      <DeleteTripButton onDelete={handleDelete} />
+      {/* 아래에 "수정"(보조), "삭제"(위험) 버튼을 나란히 (COMPONENT_SPEC 10-5) */}
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <Link href={`${regionHref}/trips/${trip.id}/edit`} className="btn-secondary">
+          수정
+        </Link>
+        <DeleteTripButton onDelete={handleDelete} />
+      </div>
       {deleteError && (
         <StatusMessage
           kind="error"

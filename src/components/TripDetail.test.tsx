@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { TripDetail } from "@/components/TripDetail";
-import { T2 } from "../../tests/fixtures/trips";
+import { T2, T3 } from "../../tests/fixtures/trips";
 
 describe("TripDetail", () => {
   it("UI-71 일기가 ''이면 '여행일기' 아래에 '작성한 여행일기가 없어요.'가 보인다", () => {
@@ -25,5 +25,10 @@ describe("TripDetail", () => {
     expect(screen.getByText("가동")).toBeInTheDocument();
     expect(screen.getByText("나동")).toBeInTheDocument();
     expect(screen.queryByText("고른 동네가 없어요.")).not.toBeInTheDocument();
+  });
+
+  it("UI-108 T3(07.01 ~ 07.03)는 '2박 3일'이 보인다", () => {
+    render(<TripDetail trip={{ ...T3, tripNumber: 3 }} dongNames={[]} />);
+    expect(screen.getByText("2박 3일")).toBeInTheDocument();
   });
 });
